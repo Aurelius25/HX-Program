@@ -10,10 +10,10 @@ import datetime
 import os
 import sys
 
+from History import History as History
 from Binocular import Binocular as Binocular
 from Perceptual import Perceptual as Perceptual
 from StereoCV import StereoCV as StereoCV
-from History import History as History
 
 # in each class make colours, properites of each class
 # can probably move the action functions into the actionButtons class and inherit to all classes

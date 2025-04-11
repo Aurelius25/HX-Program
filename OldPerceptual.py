@@ -212,7 +212,7 @@ class Perceptual(ctk.CTk):
     def create_control_buttons(self):
         # Create a container frame for the buttons that's fixed at the bottom right
         self.button_frame = ctk.CTkFrame(self, fg_color="#c2e6c2", corner_radius=0)
-        self.button_frame.pack(side="right", anchor="se", padx=20, pady=100)
+        self.button_frame.place(x=550, y=100)
         
         # Create the buttons within the frame
         self.undo_button = ctk.CTkButton(
