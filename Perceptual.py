@@ -8,6 +8,9 @@ class Perceptual(ctk.CTkFrame):
 
          # Initialize timer variables
         self.timer_ids = {}
+
+        # \u2713 check mark
+        # \u2717 cross mark
         
         self.create_main_content()
         self.create_control_buttons()
@@ -105,15 +108,15 @@ class Perceptual(ctk.CTkFrame):
         radio_var = tk.StringVar(value="+0.50")
         radio1 = ctk.CTkRadioButton(radio_frame, text="+0.5", variable=radio_var, value="+0.5",
                                    command=lambda: self.update_status("+0.50 RX"))
-        radio1.pack(side="left", padx=10)
+        radio1.pack(side="left", padx=5)
         
         radio2 = ctk.CTkRadioButton(radio_frame, text="+0.75", variable=radio_var, value="+0.75",
                                    command=lambda: self.update_status("+0.75 RX"))
-        radio2.pack(side="left", padx=10)
+        radio2.pack(side="left", padx=5)
         
         radio3 = ctk.CTkRadioButton(radio_frame, text="+1.00", variable=radio_var, value="+1.00",
                                    command=lambda: self.update_status("+1.00 RX"))
-        radio3.pack(side="left", padx=10)
+        radio3.pack(side="left", padx=5)
         
         button_frame = ctk.CTkFrame(left_frame, fg_color="#c2e6c2", corner_radius=0)
         button_frame.pack(fill="x", pady=10)
@@ -121,11 +124,11 @@ class Perceptual(ctk.CTkFrame):
         self.done_button = ctk.CTkButton(
             button_frame, 
             text="Done", 
-            fg_color="#4CAF50",  # Green color
+            fg_color="#4CAF50",
             text_color="white", 
             width=100, 
             height=30,
-            command=self.calculate_dem_results  # Modified to use our new function
+            command=self.calculate_dem_results 
         )
         self.done_button.pack(fill="x", pady=5)
         
@@ -133,7 +136,7 @@ class Perceptual(ctk.CTkFrame):
         self.new_line_button = ctk.CTkButton(
             button_frame, 
             text="New Line", 
-            fg_color="#E090E0",  # Using the color from Binocular.txt
+            fg_color="#E090E0",
             text_color="black", 
             width=100, 
             height=30,
@@ -148,7 +151,6 @@ class Perceptual(ctk.CTkFrame):
         
     # Create control buttons with fixed positioning (updated to match Binocular.txt)
     def create_control_buttons(self):
-        # Create a container frame for the buttons that's fixed at the bottom right
         self.button_frame = ctk.CTkFrame(self, fg_color="#c2e6c2", corner_radius=0)
         self.button_frame.place(x=550, y=50)
         

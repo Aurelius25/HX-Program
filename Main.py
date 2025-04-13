@@ -17,6 +17,7 @@ from StereoCV import StereoCV as StereoCV
 
 # in each class make colours, properites of each class
 # can probably move the action functions into the actionButtons class and inherit to all classes
+# in the binocular class fix the cm toggle
 
 class Main(ctk.CTk):
     # @staticmethod

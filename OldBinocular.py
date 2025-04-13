@@ -12,7 +12,8 @@ class binocular(ctk.CTk):
         self.title("HX Program")
         self.geometry("1050x750")
         
-        self.main_frame = ctk.CTkFrame(self, fg_color="#FAC8D4")
+        # self.main_frame = ctk.CTkFrame(self, fg_color="#FAC8D4")
+        self.main_frame = ctk.CTkFrame(self, fg_color="#FFFFFF")
         self.main_frame.pack(fill="both", expand=True)
         
         self.status_text = ""
@@ -158,10 +159,11 @@ class binocular(ctk.CTk):
             radio.place(x=x, y=y)
     
     # Create cm radio with background matching the main frame color (unlit state)
+    # chagne to match the off colour
             self.cm_radio = ctk.CTkRadioButton(self.main_frame, text="cm (OFF)",
                                        variable=tk.StringVar(value="OFF"),
                                        value="ON",
-                                       fg_color=self.main_frame._fg_color,  # Match background color
+                                       fg_color=self.main_frame._fg_color,  
                                        command=self.toggle_cm)
             self.cm_radio.place(x=670, y=120)
 
@@ -323,6 +325,7 @@ class binocular(ctk.CTk):
         options = [("T", 100, 510), ("B", 150, 510), ("T/B", 200, 510)]
         var_bif = tk.StringVar(value="T/B")
         
+        # note: change to more aesthetic blue
         for opt, x, y in options:
             radio = ctk.CTkRadioButton(self.main_frame, text=opt, variable=var_bif, value=opt,
                                       command=lambda o=opt: self.update_status(o))
