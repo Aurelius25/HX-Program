@@ -1,4 +1,3 @@
-
 import customtkinter as ctk
 import tkinter as tk
 from tkinter import ttk
@@ -17,10 +16,11 @@ import os
 # note: have to click the first button for it to print TVAS, TAAS, MVPT 
 
 # note: might need to make it mode based
+# note: could do it so that thee is one frame and it swtiches between three modes TAAS, TVAS, MVPT  
 
 # Set appearance mode and default color theme
 ctk.set_appearance_mode("light")
-ctk.set_default_color_theme("green")
+ctk.set_default_color_theme("blue")
 
 class Perceptual(ctk.CTk):
     def __init__(self):
@@ -60,6 +60,19 @@ class Perceptual(ctk.CTk):
         
         # Initialize timer variables
         self.timer_ids = {}
+        
+        # Define Monroe V3 level mapping
+        self.monroe_levels = {
+            (0, -1): "Level 0",
+            (1, 3): "(< age 5)",
+            (4, 5): "(age 5)",   
+            (6, 6): "(age 6)",
+            (7, 7): "(age 6.5)", 
+            (8, 8): "(age 7)",
+            (9, 9): "(age 8)",
+            (10, 10): "(age 9)",
+            (11, 12): "(>= age 10)"
+        }
         
         self.create_main_content()
         self.create_control_buttons()
@@ -373,10 +386,28 @@ class Perceptual(ctk.CTk):
                                              command=self.new_line)
         self.new_line_button.pack(fill="x", pady=5)
         
-        monitor_btn = ctk.CTkButton(button_frame, text="Monroe V3", fg_color="#6699ff", 
+        # Create Monroe V3 button and entry field container
+        monroe_frame = ctk.CTkFrame(button_frame, fg_color="#c2e6c2", corner_radius=0)
+        monroe_frame.pack(fill="x", pady=5)
+        
+        # Monroe V3 button
+        self.monroe_btn = ctk.CTkButton(monroe_frame, text="Monroe V3", fg_color="#6699ff", 
                                     hover_color="#4d88ff", corner_radius=5, height=30,
-                                    command=lambda: self.update_status("Monroe V3"))
-        monitor_btn.pack(fill="x", pady=5)
+                                    command=self.submit_monroe_score)
+        self.monroe_btn.pack(fill="x")
+        
+        # Add the textbox for Monroe V3 score entry
+        monroe_entry_frame = ctk.CTkFrame(button_frame, fg_color="#c2e6c2", corner_radius=0)
+        monroe_entry_frame.pack(fill="x", pady=2)
+        
+        # Add a label for the entry
+        entry_label = ctk.CTkLabel(monroe_entry_frame, text="Score:", fg_color="#c2e6c2")
+        entry_label.pack(side="left", padx=(10, 5))
+        
+        # Create text entry field for Monroe V3 score
+        self.monroe_score_entry = ctk.CTkEntry(monroe_entry_frame, width=60, height=25, border_width=1)
+        self.monroe_score_entry.pack(side="left", padx=5, fill="x", expand=True)
+        self.monroe_score_entry.insert(0, "0")
         
     def create_control_buttons(self):
         self.button_frame = ctk.CTkFrame(self, fg_color="#c2e6c2", corner_radius=0)
@@ -414,6 +445,35 @@ class Perceptual(ctk.CTk):
             command=self.display_scores
         )
         self.score_button.pack(pady=5)
+    
+    # New function to handle Monroe V3 score submission
+    def submit_monroe_score(self):
+        """Submit Monroe V3 score and determine level"""
+        try:
+            # Get the score from the entry field
+            score = int(self.monroe_score_entry.get())
+            
+            # Determine the level based on score
+            level = self.determine_monroe_level(score)
+            
+            # Update status bar with Monroe V3 score and level
+            self.update_status(f"Monroe V3 score = {score} {level}")
+            
+        except ValueError:
+            # Handle invalid input
+            self.update_status("Error: Monroe V3 score must be a number")
+    
+    # New function to determine Monroe V3 level based on score
+    def determine_monroe_level(self, score):
+        """Determine Monroe V3 level based on score"""
+        # Find the appropriate level range for the score
+        for score_range, level_name in self.monroe_levels.items():
+            min_score, max_score = score_range
+            if min_score <= score <= max_score:
+                return level_name
+        
+        # If no range matches, return the default lowest level
+        return self.monroe_levels[(0, -1)]
     
     # New function to calculate and display DEM results
     def calculate_dem_results(self):
