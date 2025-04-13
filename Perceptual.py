@@ -1,21 +1,46 @@
 import customtkinter as ctk
 import tkinter as tk
+from tkinter import ttk
+import pyperclip
+import datetime
+import os
+
+# need to add the feature which keeps track of the order
 
 class Perceptual(ctk.CTkFrame):
     def __init__(self, master, root_app=None):
         ctk.CTkFrame.__init__(self, master, fg_color="#c2e6c2")
         self.root_app = root_app
-
-         # Initialize timer variables
-        self.timer_ids = {}
-
-        # \u2713 check mark
-        # \u2717 cross mark
         
-        self.create_main_content()
+        # Initialize variables
+        self.status_labels = {}
+        self.timer_ids = {"DEM A": None, "DEM B": None, "DEM C": None}
+        self.test_first_clicked = {"TAAS": False, "TVAS": False, "MVPT": False}
+        
+        # Define Monroe V3 level mapping
+        self.monroe_levels = {
+            (0, -1): "Level 0", (1, 3): "(< age 5)", (4, 5): "(age 5)",   
+            (6, 6): "(age 6)", (7, 7): "(age 6.5)", (8, 8): "(age 7)",
+            (9, 9): "(age 8)", (10, 10): "(age 9)", (11, 12): "(>= age 10)"
+        }
+        
+        # Test criteria mappings
+        self.level_criteria = {
+            "TAAS": {
+                (0, 2): "pre prep", (3, 3): "prep", (4, 6): "Early grade 1",
+                (7, 9): "Grade 1", (10, 12): "Early grade 2", (13, 13): "Grade 2",
+                (14, 14): "Early grade 3", (15, 15): "Grade 3"
+            },
+            "TVAS": {
+                (1, 1): "pre kinda", (2, 5): "kinda", (6, 7): "prep",
+                (8, 8): "Grade 1", (9, 9): "Grade 2", (10, 10): "Grade 3",
+                (11, 12): "Grade 4", (13, 14): "> Grade 4"
+            }
+        }
+        
+        self.create_main_frame()
         self.create_control_buttons()
-        # self.bind("<Configure>", self.on_window_resize)
-
+        
     def update_status(self, text):
         if self.root_app:
             self.root_app.main_update_status(text)  
@@ -26,231 +51,480 @@ class Perceptual(ctk.CTkFrame):
 
     def clear_status(self):
         if self.root_app:
-            self.root_app.main_clear_status()  
+            self.root_app.main_clear_status()
+            # Reset tracking dictionaries when status is cleared
+            self.status_labels = {}
+            self.test_first_clicked = {k: False for k in self.test_first_clicked}
 
     def undo_status(self):
         if self.root_app:
             self.root_app.main_undo_status()
+            # Reset tracking after undo
+            self.update_tracking_after_undo()
 
     def copy_status(self):
         if self.root_app:
-            self.root_app.main_copy_status()
-            
-    def create_main_content(self):
-        content_frame = ctk.CTkFrame(self, fg_color="#c2e6c2", corner_radius=0)
-        content_frame.pack(fill="both", expand=False, pady=5)
+            self.root_app.main_copy_status()     
+
+    def update_tracking_after_undo(self):
+        # Reset tracking dictionaries after undo
+        # This is a simplified approach - in a full implementation you might 
+        # want to parse the current status text to properly sync the UI state
+        self.status_labels = {}
+        if self.root_app:
+            current_text = self.root_app.status_textbox.get(1.0, "end-1c")
+            self.test_first_clicked = {
+                "TAAS": "TAAS" in current_text,
+                "TVAS": "TVAS" in current_text,
+                "MVPT": "MVPT" in current_text
+            }
+
+    def create_main_frame(self):
+        # Create the main frame
+        self.main_frame = ctk.CTkFrame(self, fg_color="#c2e6c2", corner_radius=0)
+        self.main_frame.pack(fill="both", expand=True, padx=10, pady=10)
         
-        # Left column
-        left_frame = ctk.CTkFrame(content_frame, fg_color="#c2e6c2", corner_radius=0, width=280)
-        left_frame.pack(side="left", fill="y", padx=(0, 10), expand=False)
+        # Create DEM section (left side)
+        self.create_dem_section()
+        
+        # Create test frames
+        self.create_test_frame("TAAS", self.create_TAAS_content, width=150)
+        self.create_test_frame("TVAS", self.create_TVAS_content, width=130, side="right")
+        self.create_test_frame("MVPT", self.create_MVPT_content, width=240, side="right")
+        
+    def create_dem_section(self):
+        left_frame = ctk.CTkFrame(self.main_frame, fg_color="#c2e6c2", corner_radius=0, width=70)
+        left_frame.pack(side="left", fill="y", expand=False)
         
         # DEM sections
-        self.dem_entries = {}  # Store entries for reference
+        self.dem_entries = {}
         dem_labels = ["DEM A", "DEM B", "DEM C", "Skip line", "Rpt line"]
         
         for label in dem_labels:
             frame = ctk.CTkFrame(left_frame, fg_color="#c2e6c2", corner_radius=0, height=30)
             frame.pack(fill="x", pady=2)
             
-            # Modify the command for each button - removed status updates
+            # Create button with appropriate command
             if label in ["DEM A", "DEM B", "DEM C"]:
-                label_button = ctk.CTkButton(
-                    frame, 
-                    text=label, 
-                    fg_color="#f0f0f0", 
-                    text_color="black", 
-                    hover_color="#e0e0e0", 
-                    corner_radius=5, 
-                    height=25, 
-                    width=80,
-                    command=lambda l=label: self.toggle_increment_timer(l)
-                )
+                # Pass the specific label to the toggle_increment_timer function
+                command = lambda l=label: self.toggle_increment_timer(l)
             elif label in ["Skip line", "Rpt line"]:
-                label_button = ctk.CTkButton(
-                    frame, 
-                    text=label, 
-                    fg_color="#f0f0f0", 
-                    text_color="black", 
-                    hover_color="#e0e0e0", 
-                    corner_radius=5, 
-                    height=25, 
-                    width=80,
-                    command=lambda l=label: self.increment_entry(l)
-                )
+                command = lambda l=label: self.increment_entry(l)
             else:
-                label_button = ctk.CTkButton(
-                    frame, 
-                    text=label, 
-                    fg_color="#f0f0f0", 
-                    text_color="black", 
-                    hover_color="#e0e0e0", 
-                    corner_radius=5, 
-                    height=25, 
-                    width=80
-                )
-                
+                command = None
+            
+            label_button = ctk.CTkButton(frame, text=label, fg_color="#f0f0f0", text_color="black", 
+                                         hover_color="#e0e0e0", corner_radius=5, height=25, width=80,
+                                         command=command)
             label_button.pack(side="left", padx=5)
             
+            # Create entry field
             entry = ctk.CTkEntry(frame, width=50, height=25, border_width=1)
             entry.pack(side="left", padx=10)
             entry.insert(0, "0")
-            
-            # Store entries in dictionary for later access
             self.dem_entries[label] = entry
         
-        # Radio buttons
-        radio_frame = ctk.CTkFrame(left_frame, fg_color="#c2e6c2", corner_radius=0)
-        radio_frame.pack(fill="x", pady=5)
+        # Radio buttons for RX
+        radio_frame = ctk.CTkFrame(left_frame, width=40, fg_color="#c2e6c2", corner_radius=0)
+        radio_frame.pack(pady=5)
         
         radio_label = ctk.CTkLabel(radio_frame, text="Put on")
         radio_label.pack(side="left", padx=5)
         
-        radio_var = tk.StringVar(value="+0.50")
-        radio1 = ctk.CTkRadioButton(radio_frame, text="+0.5", variable=radio_var, value="+0.5",
-                                   command=lambda: self.update_status("+0.50 RX"))
-        radio1.pack(side="left", padx=5)
+        radio_var = tk.StringVar(value="+0.5")
+        for rx in ["+0.5", "+0.75", "+1.00"]:
+            rx_radio = ctk.CTkRadioButton(radio_frame, text=rx, variable=radio_var, value=rx, width=10,
+                                       command=lambda v=rx: self.update_status(f"{v} RX"))
+            rx_radio.pack(side="left", padx=5)
         
-        radio2 = ctk.CTkRadioButton(radio_frame, text="+0.75", variable=radio_var, value="+0.75",
-                                   command=lambda: self.update_status("+0.75 RX"))
-        radio2.pack(side="left", padx=5)
-        
-        radio3 = ctk.CTkRadioButton(radio_frame, text="+1.00", variable=radio_var, value="+1.00",
-                                   command=lambda: self.update_status("+1.00 RX"))
-        radio3.pack(side="left", padx=5)
-        
+        # Control buttons
         button_frame = ctk.CTkFrame(left_frame, fg_color="#c2e6c2", corner_radius=0)
-        button_frame.pack(fill="x", pady=10)
+        button_frame.pack(pady=10)
         
-        self.done_button = ctk.CTkButton(
-            button_frame, 
-            text="Done", 
-            fg_color="#4CAF50",
-            text_color="white", 
-            width=100, 
-            height=30,
-            command=self.calculate_dem_results 
-        )
-        self.done_button.pack(fill="x", pady=5)
+        # Create control buttons
+        self.done_button = self.create_button(button_frame, "Done", "#4CAF50", "white", self.calculate_dem_results)
+        self.new_line_button = self.create_button(button_frame, "New Line", "#E090E0", "black", self.new_line)
+        self.monroe_btn = self.create_button(button_frame, "Monroe V3", "#6699ff", "black", self.submit_monroe_score)
         
-        # New Line button (matching style from Binocular.txt)
-        self.new_line_button = ctk.CTkButton(
-            button_frame, 
-            text="New Line", 
-            fg_color="#E090E0",
-            text_color="black", 
-            width=100, 
-            height=30,
-            command=self.new_line
-        )
-        self.new_line_button.pack(fill="x", pady=5)
+        # Monroe score entry
+        monroe_entry_frame = ctk.CTkFrame(button_frame, fg_color="#c2e6c2", corner_radius=0)
+        monroe_entry_frame.pack(fill="x", pady=2)
         
-        monitor_btn = ctk.CTkButton(button_frame, text="Monroe V3", fg_color="#6699ff", 
-                                    hover_color="#4d88ff", corner_radius=5, height=30,
-                                    command=lambda: self.update_status("Monroe V3"))
-        monitor_btn.pack(fill="x", pady=5)
+        entry_label = ctk.CTkLabel(monroe_entry_frame, text="Score:", fg_color="#c2e6c2")
+        entry_label.pack(side="left", padx=(10, 5))
         
-    # Create control buttons with fixed positioning (updated to match Binocular.txt)
+        self.monroe_score_entry = ctk.CTkEntry(monroe_entry_frame, width=60, height=25, border_width=1)
+        self.monroe_score_entry.pack(side="left", padx=5, fill="x", expand=True)
+        self.monroe_score_entry.insert(0, "0")
+        
+    def create_button(self, parent, text, color, text_color, command, width=100, height=30):
+        button = ctk.CTkButton(parent, text=text, fg_color=color, text_color=text_color, 
+                               width=width, height=height, command=command)
+        button.pack(fill="x", pady=5)
+        return button
+        
     def create_control_buttons(self):
         self.button_frame = ctk.CTkFrame(self, fg_color="#c2e6c2", corner_radius=0)
-        self.button_frame.place(x=550, y=50)
+        self.button_frame.place(x=450, y=200)
         
-        # Create the buttons within the frame
-        self.undo_button = ctk.CTkButton(
-            self.button_frame, 
-            text="Undo", 
-            fg_color="#A52A2A", 
-            text_color="white", 
-            width=100, 
-            height=40,
-            command=self.undo_status
-        )
-        self.undo_button.pack(pady=5)
+        buttons = [
+            ("Undo", "#A52A2A", "white", self.undo_status, 100, 40),
+            ("Clear Status", "#FF4500", "white", self.clear_status, 100, 30),
+            ("Copy All", "#A0A000", "black", self.copy_status, 110, 50),
+            ("Calculate Scores", "#4169E1", "white", self.display_scores, 110, 40)
+        ]
         
-        self.clear_status_button = ctk.CTkButton(
-            self.button_frame, 
-            text="Clear Status", 
-            fg_color="#FF4500", 
-            text_color="white", 
-            width=100, 
-            height=30,
-            command=self.clear_status
-        )
-        self.clear_status_button.pack(pady=5)
-        
-        self.copy_button = ctk.CTkButton(
-            self.button_frame, 
-            text="Copy All", 
-            fg_color="#A0A000", 
-            text_color="black", 
-            width=110, 
-            height=50,
-            command=self.copy_status
-        )
-        self.copy_button.pack(pady=5)
+        for text, color, text_color, command, width, height in buttons:
+            self.create_button(self.button_frame, text, color, text_color, command, width, height)
     
-    # New function to calculate and display DEM results
-    def calculate_dem_results(self):
-        """Calculate DEM results and display them in the status bar"""
-        try:
-            # Get values from entry fields
-            dem_a = int(self.dem_entries["DEM A"].get())
-            dem_b = int(self.dem_entries["DEM B"].get())
-            dem_c = int(self.dem_entries["DEM C"].get())
-            skip_lines = int(self.dem_entries["Skip line"].get())
-            rpt_lines = int(self.dem_entries["Rpt line"].get())
-            
-            # Calculate the results
-            dem_ab_total = dem_a + dem_b
-            total = dem_c + (4 * skip_lines) - (4 * rpt_lines)
-            
-            # Format the results message
-            results_message = (
-                f"DEMA = {dem_a}, "
-                f"DEMB = {dem_b}, "
-                f"DEMA + DEMB = {dem_ab_total}, "
-                f"DEMC = {dem_c}, "
-                f"Skip lines: {skip_lines}, "
-                f"Rpt lines: {rpt_lines}, "
-                f"Total = {total}"
-            )
-            
-            # Update the status with the results
-            self.update_status(results_message)
-            
-        except ValueError:
-            # Handle case where entries contain non-numeric values
-            self.update_status("Error: All DEM values must be numbers")
+    def create_test_frame(self, title, content_func, width=150, height=180, side="left"):
+        frame = ctk.CTkFrame(self.main_frame, width=width, height=height, fg_color="white", corner_radius=5)
+        frame.pack(side=side, fill="y", padx=10, pady=10)
+        frame.pack_propagate(False)
+        
+        label = ctk.CTkLabel(frame, text=title, height= 10)
+        label.pack(fill="x", padx=5, pady=5)
+        
+        # Call the content creation function
+        content_func(frame, title)
+        
+        return frame
     
+    def create_TAAS_content(self, parent, title):
+        wordlist = ["(cow)boy", "steam(boat)", "sun(shine)", "(pic)nic", "(cu)cumber", "(c)oat",
+                    "(m)eat", "(t)ake", "(ga)me", "(wro)te", "plea(se)", "(c)lap", "(p)lay", 
+                    "s(t)ale", "s(m)ack"]
+        
+        # Find the index of "sun(shine)" to start numbering from
+        sunshine_index = wordlist.index("sun(shine)")
+        
+        # Create checkboxes for each word
+        self.taas_checkboxes = []
+        self.taas_state_vars = []
+        
+        for i, word in enumerate(wordlist):
+            checkbox_frame = ctk.CTkFrame(parent, fg_color="transparent")
+            checkbox_frame.pack(fill="x", padx=5, pady=2)
+            
+            # If the word is "sun(shine)" or after, add numbering
+            if i >= sunshine_index:
+                number = i - sunshine_index + 1
+                display_text = f"{number}. {word}"
+            else:
+                display_text = word
+            
+            state_var = ctk.StringVar(value="0")
+            checkbox = ctk.CTkCheckBox(checkbox_frame, text=display_text, onvalue="1", offvalue="0")
+            checkbox.pack(side="left", padx=5)
+            
+            is_first = (i == 0)
+            prefix = title if is_first else None
+            
+            checkbox.configure(command=lambda cb=checkbox, sv=state_var, w=word, p=prefix: 
+                               self.toggle_state(cb, sv, w, prefix=p, word=w))
+            
+            self.taas_checkboxes.append(checkbox)
+            self.taas_state_vars.append(state_var)
+    
+    def create_MVPT_content(self, parent, title):
+        # Create container for the columns
+        checkbox_container = ctk.CTkFrame(parent, fg_color="transparent")
+        checkbox_container.pack(fill="both", expand=True, padx=5, pady=5)
+        
+        # Create three columns
+        columns = [ctk.CTkFrame(checkbox_container, fg_color="transparent") for _ in range(3)]
+        for col in columns:
+            col.pack(side="left", fill="both", expand=True)
+        
+        # Store all checkboxes
+        self.MVPT_checkboxes = []
+        self.MVPT_state_vars = []
+        
+        # Create checkboxes in three columns
+        ranges = [(1, 13), (13, 25), (25, 37)]
+        
+        for col_idx, (start, end) in enumerate(ranges):
+            for i in range(start, end):
+                state_var = ctk.StringVar(value="0")
+                checkbox = ctk.CTkCheckBox(columns[col_idx], text=str(i), width=20, 
+                                        onvalue="1", offvalue="0")
+                checkbox.pack(anchor="w", padx=5, pady=1)
+                
+                prefix = title if i == 1 else None
+                
+                checkbox.configure(command=lambda cb=checkbox, sv=state_var, num=i, p=prefix: 
+                                self.toggle_state(cb, sv, str(num), prefix=p))
+                
+                self.MVPT_checkboxes.append(checkbox)
+                self.MVPT_state_vars.append(state_var)
+    
+    def create_TVAS_content(self, parent, title):
+        # Create a header frame to hold both labels
+        header_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        header_frame.pack(fill="x", padx=5, pady=5)
+        
+        # Add TVAS label
+        tvas_label = ctk.CTkLabel(header_frame, text=title, height=10)
+        tvas_label.pack(side="left", padx=5)
+        
+        # Add NG label next to TVAS label
+        ng_label = ctk.CTkLabel(header_frame, text="NG", height=10)
+        ng_label.pack(side="right", padx=5)
+        
+        # Store all checkboxes and variables
+        self.TVAS_checkboxes = []
+        self.TVAS_state_vars = []
+        self.TVAS_ng_checkboxes = []
+        self.TVAS_ng_state_vars = []
+        
+        # Create rows with two checkboxes each
+        for i in range(1, 15):
+            row_frame = ctk.CTkFrame(parent, fg_color="transparent")
+            row_frame.pack(fill="x", padx=5, pady=2)
+            
+            # First column: Numbered checkboxes
+            state_var = ctk.StringVar(value="0")
+            checkbox = ctk.CTkCheckBox(row_frame, text=str(i), width=50, onvalue="1", offvalue="0")
+            checkbox.pack(side="left", padx=5)
+            
+            prefix = title if i == 1 else None
+            
+            checkbox.configure(command=lambda cb=checkbox, sv=state_var, num=i, p=prefix: 
+                                self.toggle_state(cb, sv, str(num), prefix=p))
+            
+            self.TVAS_checkboxes.append(checkbox)
+            self.TVAS_state_vars.append(state_var)
+            
+            # Second column: NG checkboxes
+            ng_var = tk.BooleanVar(value=False)
+            ng_checkbox = ctk.CTkCheckBox(row_frame, text="", variable=ng_var, onvalue=True, offvalue=False)
+            ng_checkbox.pack(side="right", padx=5)
+            
+            ng_checkbox.configure(command=lambda cb=ng_checkbox, var=ng_var, num=i: 
+                                self.toggle_ng(cb, var, num))
+            
+            self.TVAS_ng_checkboxes.append(ng_checkbox)
+            self.TVAS_ng_state_vars.append(ng_var)
+    
+    def toggle_state(self, checkbox, state_var, label, prefix=None, word=None):
+        # Cycle through states: 0 -> 1 -> 2 -> 0
+        current_state = int(state_var.get())
+        next_state = (current_state + 1) % 3
+        state_var.set(str(next_state))
+        
+        if next_state == 0:  # Off state
+            checkbox.deselect()
+            checkbox.configure(fg_color=ctk.ThemeManager.theme["CTkCheckBox"]["fg_color"])
+            checkbox.configure(hover_color=ctk.ThemeManager.theme["CTkCheckBox"]["hover_color"])
+            self.remove_status_label(label)
+            
+        elif next_state == 1:  # Green check mark
+            checkbox.select()
+            checkbox.configure(fg_color="green", hover_color="#006400")
+            
+            # Add prefix if this is the first item in a test section
+            text_to_add = ""
+            if prefix and not self.test_first_clicked.get(prefix, False):
+                text_to_add = prefix + " "
+                self.test_first_clicked[prefix] = True
+            
+            # Add the actual item text
+            text_to_add += word if word else label
+            display_text = f"{text_to_add} \u2713"
+            self.update_status(display_text)
+            self.status_labels[label] = "\u2713"  # Check mark
+            
+        elif next_state == 2:  # Red cross mark
+            checkbox.select()
+            checkbox.configure(fg_color="red", hover_color="#8B0000")
+            
+            # Replace check mark with cross mark in status
+            if self.root_app:
+                current_text = self.root_app.status_textbox.get(1.0, "end-1c")
+                search_text = f"{word if word else label} \u2713"
+                replace_text = f"{word if word else label} \u2717"
+                
+                new_text = current_text.replace(search_text, replace_text)
+                self.root_app.status_textbox.delete(1.0, "end")
+                self.root_app.status_textbox.insert("end", new_text)
+                self.root_app.status_text = new_text
+            
+            self.status_labels[label] = "\u2717"  # Cross mark
+    
+    def toggle_ng(self, checkbox, state_var, number):
+        label = str(number)
+        
+        if self.root_app:
+            current_text = self.root_app.status_textbox.get(1.0, "end-1c")
+            
+            if state_var.get():  # Checked
+                found = any(word == label for word in current_text.split())
+                    
+                if found:
+                    # Look for patterns with checkmark or crossmark
+                    for pattern in [f"{label} \u2713", f"{label} \u2717"]:
+                        if pattern in current_text:
+                            new_text = current_text.replace(pattern, f"{pattern} NG")
+                            self.root_app.status_textbox.delete(1.0, "end")
+                            self.root_app.status_textbox.insert("end", new_text)
+                            self.root_app.status_text = new_text
+                            break
+                else:
+                    self.update_status(f"{label} NG")
+            else:  # Unchecked
+                # Remove NG from various patterns
+                patterns = [f"{label} \u2713 NG", f"{label} \u2717 NG", f"{label} NG"]
+                for pattern in patterns:
+                    if pattern in current_text:
+                        replacement = pattern[:-3] if "NG" in pattern[-3:] else label
+                        new_text = current_text.replace(pattern, replacement)
+                        self.root_app.status_textbox.delete(1.0, "end")
+                        self.root_app.status_textbox.insert("end", new_text)
+                        self.root_app.status_text = new_text
+    
+    def remove_status_label(self, label):
+        if label in self.status_labels and self.root_app:
+            current_text = self.root_app.status_textbox.get(1.0, "end-1c")
+            symbol = self.status_labels[label]
+            
+            # Check different patterns
+            patterns = [f"{label} {symbol}", f"{label} {symbol} NG"]
+            
+            for pattern in patterns:
+                if pattern in current_text:
+                    # Remove with preceding space if present
+                    if f" {pattern}" in current_text:
+                        new_text = current_text.replace(f" {pattern}", "")
+                    else:
+                        new_text = current_text.replace(pattern, "")
+                    
+                    self.root_app.status_textbox.delete(1.0, "end")
+                    self.root_app.status_textbox.insert("end", new_text)
+                    self.root_app.status_text = new_text
+            
+            # Remove from tracking dict
+            if label in self.status_labels:
+                del self.status_labels[label]
     
     def toggle_increment_timer(self, label):
-        if label in self.timer_ids and self.timer_ids[label]:
-            # Stop the timer
+        # Check if timer for this specific DEM is active
+        if self.timer_ids[label]:
             self.after_cancel(self.timer_ids[label])
             self.timer_ids[label] = None
         else:
-            # Start the timer
             self.increment_entry_with_timer(label)
     
     def increment_entry_with_timer(self, label):
         entry = self.dem_entries[label]
         current_value = int(entry.get())
-        
         entry.delete(0, 'end')
         entry.insert(0, str(current_value + 1))
-        
-        # Schedule next increment
+        # Store the timer ID for this specific DEM test
         self.timer_ids[label] = self.after(1000, lambda: self.increment_entry_with_timer(label))
     
     def increment_entry(self, label):
-        """Increment the entry value once when button is pressed"""
-        # Get current value
         entry = self.dem_entries[label]
         current_value = int(entry.get())
-        
-        # Increment the value
         entry.delete(0, 'end')
         entry.insert(0, str(current_value + 1))
     
-
-
-             
+    def copy_all(self):
+        if self.root_app:
+            self.root_app.main_copy_status()
+        else:
+            # Fallback if root_app not available
+            pyperclip.copy(self.root_app.status_textbox.get(1.0, "end-1c"))
+    
+    def count_correct_answers(self):
+        if not self.root_app:
+            return {"TAAS": 0, "TVAS": 0, "MVPT": 0}
+            
+        status_text = self.root_app.status_textbox.get(1.0, "end-1c")
+        correct_counts = {"TAAS": 0, "TVAS": 0, "MVPT": 0}
+        
+        # Count TAAS correct answers (words with check marks)
+        taas_words = ["(cow)boy", "steam(boat)", "sun(shine)", "(pic)nic", "(cu)cumber", "(c)oat",
+                    "(m)eat", "(t)ake", "(ga)me", "(wro)te", "plea(se)", "(c)lap", "(p)lay", 
+                    "s(t)ale", "s(m)ack"]
+        
+        for word in taas_words:
+            if f"{word} \u2713" in status_text:
+                correct_counts["TAAS"] += 1
+        
+        # Count TVAS and MVPT correct answers (numbers with check marks)
+        for i in range(1, 15):  # TVAS has numbers 1-14
+            if f"{i} \u2713" in status_text:
+                correct_counts["TVAS"] += 1
+        
+        for i in range(1, 37):  # MVPT has numbers 1-36
+            if f"{i} \u2713" in status_text:
+                correct_counts["MVPT"] += 1
+        
+        return correct_counts
+    
+    def determine_level(self, test_type, correct_count):
+        if test_type not in self.level_criteria:
+            return ""
+            
+        for score_range, level in self.level_criteria[test_type].items():
+            min_score, max_score = score_range
+            if min_score <= correct_count <= max_score:
+                return level
+                
+        return ""
+    
+    def display_scores(self):
+        correct_counts = self.count_correct_answers()
+        
+        taas_level = self.determine_level("TAAS", correct_counts["TAAS"])
+        tvas_level = self.determine_level("TVAS", correct_counts["TVAS"])
+        
+        score_message = (
+            f"\nScores: "
+            f"TAAS: {correct_counts['TAAS']}/15 ({taas_level}), "
+            f"TVAS: {correct_counts['TVAS']}/14 ({tvas_level}), "
+            f"MVPT Total = {correct_counts['MVPT']}/36"
+        )
+        
+        self.update_status(score_message)
+    
+    def submit_monroe_score(self):
+        try:
+            score = int(self.monroe_score_entry.get())
+            level = self.determine_monroe_level(score)
+            self.update_status(f"Monroe V3 score = {score} {level}")
+        except ValueError:
+            self.update_status("Error: Monroe V3 score must be a number")
+    
+    def determine_monroe_level(self, score):
+        for score_range, level_name in self.monroe_levels.items():
+            min_score, max_score = score_range
+            if min_score <= score <= max_score:
+                return level_name
+        return self.monroe_levels[(0, -1)]
+    
+    def calculate_dem_results(self):
+        try:
+            # Stop any active timers when calculating results
+            for label, timer_id in self.timer_ids.items():
+                if timer_id:
+                    self.after_cancel(timer_id)
+                    self.timer_ids[label] = None
+            
+            dem_values = {label: int(entry.get()) for label, entry in self.dem_entries.items()}
+            
+            dem_ab_total = dem_values["DEM A"] + dem_values["DEM B"]
+            total = dem_values["DEM C"] + (4 * dem_values["Skip line"]) - (4 * dem_values["Rpt line"])
+            
+            results_message = (
+                f"DEM A = {dem_values['DEM A']} sec, "
+                f"DEM B = {dem_values['DEM B']} sec, "
+                f"DEM A + DEM B = {dem_ab_total} sec, "
+                f"DEM C = {dem_values['DEM C']} sec, "
+                f"Skip lines: {dem_values['Skip line']} sec, "
+                f"Rpt lines: {dem_values['Rpt line']} sec, "
+                f"Total = {total} sec"
+            )
+            self.update_status(results_message)
+        except ValueError:
+            self.update_status("Error: All DEM values must be numbers")

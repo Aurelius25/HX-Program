@@ -101,17 +101,11 @@ class Main(ctk.CTk):
         
         # Create tab buttons
         for tab_name, tab_class in tab_mapping.items():
-            tab_button = ctk.CTkButton(
-                tab_frame, 
-                text=tab_name, 
-                fg_color="#e6e6e6", 
-                text_color="black", 
-                hover_color="#d1d1d1", 
-                corner_radius=0, 
-                height=30, 
-                width=70,
-                command=lambda cls=tab_class: self.switch_frame(cls)
-            )
+            tab_button = ctk.CTkButton(tab_frame, text=tab_name, fg_color="#e6e6e6", 
+                                       text_color="black", hover_color="#d1d1d1", 
+                                       corner_radius=0, height=30, width=70,
+                                       command=lambda cls=tab_class: self.switch_frame(cls))
+            
             tab_button.pack(side="left", padx=1)
 
     # Method to update status bar
@@ -189,7 +183,7 @@ if __name__ == "__main__":
     # please don't feel like you owe me anything
 
     app = Main()
-    app.title("Optometry Testing Interface")
+    app.title("HX Program")
     app.geometry("1050x750")
     app.minsize(1050, 750)
     app.mainloop()
