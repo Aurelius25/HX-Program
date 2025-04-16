@@ -7,15 +7,15 @@ from tkinter import StringVar, IntVar
 
 class StereoCV(ctk.CTkFrame):
     def __init__(self, master, root_app=None):
-        ctk.CTkFrame.__init__(self, master, fg_color="#AADDD0")
+        ctk.CTkFrame.__init__(self, master, fg_color="#57dee6")
         self.root_app = root_app
 
         # Create content
-        self.content_frame = ctk.CTkFrame(self, fg_color="#AADDD0")
+        self.content_frame = ctk.CTkFrame(self, fg_color="#57dee6")
         self.content_frame.pack(fill="both", expand=True, padx=10, pady=10)
         
         # Create left buttons column
-        self.left_column = ctk.CTkFrame(self.content_frame, fg_color="#AADDD0")
+        self.left_column = ctk.CTkFrame(self.content_frame, fg_color="#57dee6")
         self.left_column.pack(side="left", fill="y", padx=5)
 
         self.create_pink_buttons()

@@ -5,8 +5,7 @@ import pyperclip
 import datetime
 import os
 
-# need to add the feature which keeps track of the order
-
+# Added feature to keep track of the order of items
 class Perceptual(ctk.CTkFrame):
     def __init__(self, master, root_app=None):
         ctk.CTkFrame.__init__(self, master, fg_color="#c2e6c2")
@@ -16,6 +15,11 @@ class Perceptual(ctk.CTkFrame):
         self.status_labels = {}
         self.timer_ids = {"DEM A": None, "DEM B": None, "DEM C": None}
         self.test_first_clicked = {"TAAS": False, "TVAS": False, "MVPT": False}
+        
+        # Track item positions and states
+        self.taas_items = []
+        self.mvpt_items = []
+        self.tvas_items = []
         
         # Define Monroe V3 level mapping
         self.monroe_levels = {
@@ -52,9 +56,52 @@ class Perceptual(ctk.CTkFrame):
     def clear_status(self):
         if self.root_app:
             self.root_app.main_clear_status()
-            # Reset tracking dictionaries when status is cleared
+            
+            # Reset DEM values
+            for label in self.dem_entries:
+                self.dem_entries[label].delete(0, 'end')
+                self.dem_entries[label].insert(0, "0")
+            
+            # Stop any active timers
+            for label, timer_id in self.timer_ids.items():
+                if timer_id:
+                    self.after_cancel(timer_id)
+                    self.timer_ids[label] = None
+            
+            # Reset all checkboxes
+            # Reset TAAS checkboxes
+            for checkbox, state_var in zip(self.taas_checkboxes, self.taas_state_vars):
+                checkbox.deselect()
+                state_var.set("0")
+                checkbox.configure(fg_color=ctk.ThemeManager.theme["CTkCheckBox"]["fg_color"])
+                checkbox.configure(hover_color=ctk.ThemeManager.theme["CTkCheckBox"]["hover_color"])
+            
+            # Reset MVPT checkboxes
+            for checkbox, state_var in zip(self.MVPT_checkboxes, self.MVPT_state_vars):
+                checkbox.deselect()
+                state_var.set("0")
+                checkbox.configure(fg_color=ctk.ThemeManager.theme["CTkCheckBox"]["fg_color"])
+                checkbox.configure(hover_color=ctk.ThemeManager.theme["CTkCheckBox"]["hover_color"])
+            
+            # Reset TVAS checkboxes and NG checkboxes
+            for checkbox, state_var in zip(self.TVAS_checkboxes, self.TVAS_state_vars):
+                checkbox.deselect()
+                state_var.set("0")
+                checkbox.configure(fg_color=ctk.ThemeManager.theme["CTkCheckBox"]["fg_color"])
+                checkbox.configure(hover_color=ctk.ThemeManager.theme["CTkCheckBox"]["hover_color"])
+            
+            for ng_checkbox, ng_var in zip(self.TVAS_ng_checkboxes, self.TVAS_ng_state_vars):
+                ng_checkbox.deselect()
+                ng_var.set(False)
+            
+            # Reset tracking dictionaries
             self.status_labels = {}
             self.test_first_clicked = {k: False for k in self.test_first_clicked}
+            
+            # Clear ordered item lists
+            self.taas_items = []
+            self.mvpt_items = []
+            self.tvas_items = []
 
     def undo_status(self):
         if self.root_app:
@@ -78,6 +125,44 @@ class Perceptual(ctk.CTkFrame):
                 "TVAS": "TVAS" in current_text,
                 "MVPT": "MVPT" in current_text
             }
+            
+            # Reset ordered item lists
+            self.taas_items = []
+            self.mvpt_items = []
+            self.tvas_items = []
+            
+            # Try to reconstruct ordered item lists from current text
+            self.reconstruct_item_lists_from_text(current_text)
+
+    def reconstruct_item_lists_from_text(self, text):
+        """Attempt to reconstruct ordered item lists from current text"""
+        # This is a simple implementation - would need more robust parsing in production
+        
+        # Extract TAAS items
+        taas_wordlist = ["(cow)boy", "steam(boat)", "sun(shine)", "(pic)nic", "(cu)cumber", "(c)oat",
+                    "(m)eat", "(t)ake", "(ga)me", "(wro)te", "plea(se)", "(c)lap", "(p)lay", 
+                    "s(t)ale", "s(m)ack"]
+        
+        for word in taas_wordlist:
+            if f"{word} \u2713" in text or f"{word} \u2717" in text:
+                status = "\u2713" if f"{word} \u2713" in text else "\u2717"
+                self.taas_items.append((word, status))
+                self.status_labels[word] = status
+        
+        # Extract MVPT items
+        for i in range(1, 37):
+            if f"{i} \u2713" in text or f"{i} \u2717" in text:
+                status = "\u2713" if f"{i} \u2713" in text else "\u2717"
+                self.mvpt_items.append((str(i), status))
+                self.status_labels[str(i)] = status
+        
+        # Extract TVAS items
+        for i in range(1, 15):
+            if f"{i} \u2713" in text or f"{i} \u2717" in text:
+                status = "\u2713" if f"{i} \u2713" in text else "\u2717"
+                ng_suffix = " NG" if f"{i} {status} NG" in text else ""
+                self.tvas_items.append((str(i), status, ng_suffix))
+                self.status_labels[str(i)] = status
 
     def create_main_frame(self):
         # Create the main frame
@@ -132,9 +217,9 @@ class Perceptual(ctk.CTkFrame):
         radio_label.pack(side="left", padx=5)
         
         radio_var = tk.StringVar(value="+0.5")
-        for rx in ["+0.5", "+0.75", "+1.00"]:
+        for rx in ["+0.50", "+0.75", "+1.00"]:
             rx_radio = ctk.CTkRadioButton(radio_frame, text=rx, variable=radio_var, value=rx, width=10,
-                                       command=lambda v=rx: self.update_status(f"{v} RX"))
+                                       command=lambda v=rx: self.update_status(f"w/ {v} rx"))
             rx_radio.pack(side="left", padx=5)
         
         # Control buttons
@@ -191,18 +276,18 @@ class Perceptual(ctk.CTkFrame):
         return frame
     
     def create_TAAS_content(self, parent, title):
-        wordlist = ["(cow)boy", "steam(boat)", "sun(shine)", "(pic)nic", "(cu)cumber", "(c)oat",
+        self.taas_wordlist = ["(cow)boy", "steam(boat)", "sun(shine)", "(pic)nic", "(cu)cumber", "(c)oat",
                     "(m)eat", "(t)ake", "(ga)me", "(wro)te", "plea(se)", "(c)lap", "(p)lay", 
                     "s(t)ale", "s(m)ack"]
         
         # Find the index of "sun(shine)" to start numbering from
-        sunshine_index = wordlist.index("sun(shine)")
+        sunshine_index = self.taas_wordlist.index("sun(shine)")
         
         # Create checkboxes for each word
         self.taas_checkboxes = []
         self.taas_state_vars = []
         
-        for i, word in enumerate(wordlist):
+        for i, word in enumerate(self.taas_wordlist):
             checkbox_frame = ctk.CTkFrame(parent, fg_color="transparent")
             checkbox_frame.pack(fill="x", padx=5, pady=2)
             
@@ -220,8 +305,9 @@ class Perceptual(ctk.CTkFrame):
             is_first = (i == 0)
             prefix = title if is_first else None
             
-            checkbox.configure(command=lambda cb=checkbox, sv=state_var, w=word, p=prefix: 
-                               self.toggle_state(cb, sv, w, prefix=p, word=w))
+            # Pass the index for ordering
+            checkbox.configure(command=lambda cb=checkbox, sv=state_var, w=word, p=prefix, idx=i: 
+                               self.toggle_taas_state(cb, sv, w, p, idx))
             
             self.taas_checkboxes.append(checkbox)
             self.taas_state_vars.append(state_var)
@@ -252,8 +338,9 @@ class Perceptual(ctk.CTkFrame):
                 
                 prefix = title if i == 1 else None
                 
+                # Pass the numerical value for proper ordering
                 checkbox.configure(command=lambda cb=checkbox, sv=state_var, num=i, p=prefix: 
-                                self.toggle_state(cb, sv, str(num), prefix=p))
+                                self.toggle_mvpt_state(cb, sv, str(num), p, num))
                 
                 self.MVPT_checkboxes.append(checkbox)
                 self.MVPT_state_vars.append(state_var)
@@ -289,8 +376,9 @@ class Perceptual(ctk.CTkFrame):
             
             prefix = title if i == 1 else None
             
+            # Pass the numerical value for proper ordering
             checkbox.configure(command=lambda cb=checkbox, sv=state_var, num=i, p=prefix: 
-                                self.toggle_state(cb, sv, str(num), prefix=p))
+                                self.toggle_tvas_state(cb, sv, str(num), p, num))
             
             self.TVAS_checkboxes.append(checkbox)
             self.TVAS_state_vars.append(state_var)
@@ -301,12 +389,37 @@ class Perceptual(ctk.CTkFrame):
             ng_checkbox.pack(side="right", padx=5)
             
             ng_checkbox.configure(command=lambda cb=ng_checkbox, var=ng_var, num=i: 
-                                self.toggle_ng(cb, var, num))
+                                self.toggle_tvas_ng(cb, var, num))
             
             self.TVAS_ng_checkboxes.append(ng_checkbox)
             self.TVAS_ng_state_vars.append(ng_var)
     
-    def toggle_state(self, checkbox, state_var, label, prefix=None, word=None):
+    def toggle_taas_state(self, checkbox, state_var, word, prefix=None, index=0):
+        current_state = int(state_var.get())
+        next_state = (current_state + 1) % 3
+        state_var.set(str(next_state))
+        
+        if next_state == 0:  # Off state
+            checkbox.deselect()
+            checkbox.configure(fg_color=ctk.ThemeManager.theme["CTkCheckBox"]["fg_color"])
+            checkbox.configure(hover_color=ctk.ThemeManager.theme["CTkCheckBox"]["hover_color"])
+            self.remove_item_from_display(word, "TAAS")
+            
+        elif next_state == 1:  # Green check mark
+            checkbox.select()
+            checkbox.configure(fg_color="green", hover_color="#006400")
+            
+            # Add to ordered list with check mark
+            self.add_item_to_display(word, "\u2713", "TAAS", index)
+            
+        elif next_state == 2:  # Red cross mark
+            checkbox.select()
+            checkbox.configure(fg_color="red", hover_color="#8B0000")
+            
+            # Update status mark in the ordered list
+            self.update_item_status(word, "\u2717", "TAAS")
+    
+    def toggle_mvpt_state(self, checkbox, state_var, label, prefix=None, item_num=0):
         # Cycle through states: 0 -> 1 -> 2 -> 0
         current_state = int(state_var.get())
         next_state = (current_state + 1) % 3
@@ -316,95 +429,224 @@ class Perceptual(ctk.CTkFrame):
             checkbox.deselect()
             checkbox.configure(fg_color=ctk.ThemeManager.theme["CTkCheckBox"]["fg_color"])
             checkbox.configure(hover_color=ctk.ThemeManager.theme["CTkCheckBox"]["hover_color"])
-            self.remove_status_label(label)
+            self.remove_item_from_display(label, "MVPT")
             
         elif next_state == 1:  # Green check mark
             checkbox.select()
             checkbox.configure(fg_color="green", hover_color="#006400")
             
-            # Add prefix if this is the first item in a test section
-            text_to_add = ""
-            if prefix and not self.test_first_clicked.get(prefix, False):
-                text_to_add = prefix + " "
-                self.test_first_clicked[prefix] = True
-            
-            # Add the actual item text
-            text_to_add += word if word else label
-            display_text = f"{text_to_add} \u2713"
-            self.update_status(display_text)
-            self.status_labels[label] = "\u2713"  # Check mark
+            # Add to ordered list with check mark
+            self.add_item_to_display(label, "\u2713", "MVPT", item_num)
             
         elif next_state == 2:  # Red cross mark
             checkbox.select()
             checkbox.configure(fg_color="red", hover_color="#8B0000")
             
-            # Replace check mark with cross mark in status
-            if self.root_app:
-                current_text = self.root_app.status_textbox.get(1.0, "end-1c")
-                search_text = f"{word if word else label} \u2713"
-                replace_text = f"{word if word else label} \u2717"
-                
-                new_text = current_text.replace(search_text, replace_text)
-                self.root_app.status_textbox.delete(1.0, "end")
-                self.root_app.status_textbox.insert("end", new_text)
-                self.root_app.status_text = new_text
-            
-            self.status_labels[label] = "\u2717"  # Cross mark
+            # Update status mark in the ordered list
+            self.update_item_status(label, "\u2717", "MVPT")
     
-    def toggle_ng(self, checkbox, state_var, number):
+    def toggle_tvas_state(self, checkbox, state_var, label, prefix=None, item_num=0):
+        # Cycle through states: 0 -> 1 -> 2 -> 0
+        current_state = int(state_var.get())
+        next_state = (current_state + 1) % 3
+        state_var.set(str(next_state))
+        
+        if next_state == 0:  # Off state
+            checkbox.deselect()
+            checkbox.configure(fg_color=ctk.ThemeManager.theme["CTkCheckBox"]["fg_color"])
+            checkbox.configure(hover_color=ctk.ThemeManager.theme["CTkCheckBox"]["hover_color"])
+            self.remove_item_from_display(label, "TVAS")
+            
+        elif next_state == 1:  # Green check mark
+            checkbox.select()
+            checkbox.configure(fg_color="green", hover_color="#006400")
+            
+            # Add to ordered list with check mark
+            self.add_item_to_display(label, "\u2713", "TVAS", item_num)
+            
+        elif next_state == 2:  # Red cross mark
+            checkbox.select()
+            checkbox.configure(fg_color="red", hover_color="#8B0000")
+            
+            # Update status mark in the ordered list
+            self.update_item_status(label, "\u2717", "TVAS")
+                
+        elif next_state == 2:  # Red cross mark
+                checkbox.select()
+                checkbox.configure(fg_color="red", hover_color="#8B0000")
+                
+                # Update status mark in the ordered list
+                self.update_item_status(label, "\u2717", "TVAS")
+    
+    def toggle_tvas_ng(self, checkbox, state_var, number):
         label = str(number)
         
-        if self.root_app:
-            current_text = self.root_app.status_textbox.get(1.0, "end-1c")
-            
-            if state_var.get():  # Checked
-                found = any(word == label for word in current_text.split())
-                    
-                if found:
-                    # Look for patterns with checkmark or crossmark
-                    for pattern in [f"{label} \u2713", f"{label} \u2717"]:
-                        if pattern in current_text:
-                            new_text = current_text.replace(pattern, f"{pattern} NG")
-                            self.root_app.status_textbox.delete(1.0, "end")
-                            self.root_app.status_textbox.insert("end", new_text)
-                            self.root_app.status_text = new_text
-                            break
-                else:
-                    self.update_status(f"{label} NG")
-            else:  # Unchecked
-                # Remove NG from various patterns
-                patterns = [f"{label} \u2713 NG", f"{label} \u2717 NG", f"{label} NG"]
-                for pattern in patterns:
-                    if pattern in current_text:
-                        replacement = pattern[:-3] if "NG" in pattern[-3:] else label
-                        new_text = current_text.replace(pattern, replacement)
-                        self.root_app.status_textbox.delete(1.0, "end")
-                        self.root_app.status_textbox.insert("end", new_text)
-                        self.root_app.status_text = new_text
+        # Find this item in the TVAS list
+        for i, item in enumerate(self.tvas_items):
+            if item[0] == label:
+                # Update the NG status in our ordered list
+                status_mark = item[1]  # Keep current status mark (check or cross)
+                ng_suffix = " NG" if state_var.get() else ""
+                
+                # Update item in list
+                self.tvas_items[i] = (label, status_mark, ng_suffix)
+                
+                # Refresh the display
+                self.refresh_display()
+                return
+        
+        # Item not found in list but NG was checked - add it as a standalone NG item
+        if state_var.get():
+            # Find correct position based on item number
+            self.add_item_to_display(label, "", "TVAS", number, None, ng_suffix=" NG")
     
-    def remove_status_label(self, label):
-        if label in self.status_labels and self.root_app:
-            current_text = self.root_app.status_textbox.get(1.0, "end-1c")
-            symbol = self.status_labels[label]
+    def add_item_to_display(self, item, status, test_type, position, prefix=None, ng_suffix=""):
+        """Add an item to the ordered display list and refresh the display"""
+        # Track item in status labels
+        self.status_labels[item] = status
+        
+        # Get the corresponding list for this test type
+        if test_type == "TAAS":
+            items_list = self.taas_items
+        elif test_type == "MVPT":
+            items_list = self.mvpt_items
+        elif test_type == "TVAS":
+            items_list = self.tvas_items
+        else:
+            return
+        
+        # Find insertion position
+        if test_type == "TAAS":
+            # For TAAS, position is the index in the wordlist
+            insert_position = 0
+            for i, (existing_item, _) in enumerate(items_list):
+                existing_pos = self.taas_wordlist.index(existing_item)
+                if position < existing_pos:
+                    insert_position = i
+                    break
+                else:
+                    insert_position = i + 1
             
-            # Check different patterns
-            patterns = [f"{label} {symbol}", f"{label} {symbol} NG"]
+            # Create new item tuple (for TAAS we just need item and status)
+            new_item = (item, status)
             
-            for pattern in patterns:
-                if pattern in current_text:
-                    # Remove with preceding space if present
-                    if f" {pattern}" in current_text:
-                        new_text = current_text.replace(f" {pattern}", "")
-                    else:
-                        new_text = current_text.replace(pattern, "")
-                    
-                    self.root_app.status_textbox.delete(1.0, "end")
-                    self.root_app.status_textbox.insert("end", new_text)
-                    self.root_app.status_text = new_text
+        elif test_type in ["MVPT", "TVAS"]:
+            # For MVPT and TVAS, position is the numerical value
+            insert_position = 0
+            for i, existing_item_tuple in enumerate(items_list):
+                existing_item = existing_item_tuple[0]
+                existing_pos = int(existing_item)
+                if position < existing_pos:
+                    insert_position = i
+                    break
+                else:
+                    insert_position = i + 1
             
-            # Remove from tracking dict
-            if label in self.status_labels:
-                del self.status_labels[label]
+            # Create new item tuple
+            if test_type == "MVPT":
+                new_item = (item, status)
+            else:  # TVAS
+                new_item = (item, status, ng_suffix)
+        
+        # Insert the item at the correct position
+        items_list.insert(insert_position, new_item)
+        
+        # Refresh the display with prefix if provided
+        self.refresh_display(prefix)
+    
+    def update_item_status(self, item, new_status, test_type):
+        """Update the status of an item in the ordered list"""
+        # Update item in status labels
+        self.status_labels[item] = new_status
+        
+        # Get the corresponding list for this test type
+        if test_type == "TAAS":
+            items_list = self.taas_items
+        elif test_type == "MVPT":
+            items_list = self.mvpt_items
+        elif test_type == "TVAS":
+            items_list = self.tvas_items
+        else:
+            return
+        
+        # Find and update the item
+        for i, item_tuple in enumerate(items_list):
+            if item_tuple[0] == item:
+                if test_type in ["TAAS", "MVPT"]:
+                    items_list[i] = (item, new_status)
+                elif test_type == "TVAS":
+                    # Preserve NG status
+                    ng_suffix = item_tuple[2] if len(item_tuple) > 2 else ""
+                    items_list[i] = (item, new_status, ng_suffix)
+                break
+        
+        # Refresh the display
+        self.refresh_display()
+    
+    def remove_item_from_display(self, item, test_type):
+        """Remove an item from the ordered display list"""
+        # Remove from status labels
+        if item in self.status_labels:
+            del self.status_labels[item]
+        
+        # Get the corresponding list for this test type
+        if test_type == "TAAS":
+            items_list = self.taas_items
+        elif test_type == "MVPT":
+            items_list = self.mvpt_items
+        elif test_type == "TVAS":
+            items_list = self.tvas_items
+        else:
+            return
+        
+        # Find and remove the item
+        for i, item_tuple in enumerate(items_list):
+            if item_tuple[0] == item:
+                items_list.pop(i)
+                break
+        
+        # Refresh the display
+        self.refresh_display()
+    
+    def refresh_display(self, prefix=None):
+        """Refresh the entire display based on the ordered lists"""
+        if not self.root_app:
+            return
+        
+        # Clear the current status text
+        self.root_app.status_textbox.delete(1.0, "end")
+        
+        # Rebuild text section by section
+        status_text = ""
+        
+        # Add TAAS items if there are any
+        if self.taas_items:
+            # Always add the TAAS prefix if there are items
+            status_text += "TAAS "
+            for item, status in self.taas_items:
+                item_text = f"{item} {status}"
+                status_text += item_text + " "
+        
+        # Add MVPT items if there are any
+        if self.mvpt_items:
+            # Always add the MVPT prefix if there are items
+            status_text += "MVPT "
+            for item, status in self.mvpt_items:
+                item_text = f"{item} {status}"
+                status_text += item_text + " "
+        
+        # Add TVAS items if there are any
+        if self.tvas_items:
+            # Always add the TVAS prefix if there are items
+            status_text += "TVAS "
+            for i, (item, status, *rest) in enumerate(self.tvas_items):
+                ng_suffix = rest[0] if rest else ""
+                item_text = f"{item} {status}{ng_suffix}"
+                status_text += item_text + " "
+        
+        # Update textbox with the reconstructed text
+        self.root_app.status_textbox.insert("end", status_text)
+        self.root_app.status_text = status_text
     
     def toggle_increment_timer(self, label):
         # Check if timer for this specific DEM is active
@@ -442,23 +684,18 @@ class Perceptual(ctk.CTkFrame):
         status_text = self.root_app.status_textbox.get(1.0, "end-1c")
         correct_counts = {"TAAS": 0, "TVAS": 0, "MVPT": 0}
         
-        # Count TAAS correct answers (words with check marks)
-        taas_words = ["(cow)boy", "steam(boat)", "sun(shine)", "(pic)nic", "(cu)cumber", "(c)oat",
-                    "(m)eat", "(t)ake", "(ga)me", "(wro)te", "plea(se)", "(c)lap", "(p)lay", 
-                    "s(t)ale", "s(m)ack"]
-        
-        for word in taas_words:
-            if f"{word} \u2713" in status_text:
+        # Count correct answers from our ordered lists
+        for item, status in self.taas_items:
+            if status == "\u2713":  # Check mark
                 correct_counts["TAAS"] += 1
         
-        # Count TVAS and MVPT correct answers (numbers with check marks)
-        for i in range(1, 15):  # TVAS has numbers 1-14
-            if f"{i} \u2713" in status_text:
-                correct_counts["TVAS"] += 1
-        
-        for i in range(1, 37):  # MVPT has numbers 1-36
-            if f"{i} \u2713" in status_text:
+        for item, status in self.mvpt_items:
+            if status == "\u2713":  # Check mark
                 correct_counts["MVPT"] += 1
+        
+        for item, status, *rest in self.tvas_items:
+            if status == "\u2713":  # Check mark
+                correct_counts["TVAS"] += 1
         
         return correct_counts
     

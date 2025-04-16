@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['DrPotatoTest.py'],
+    ['Main.py'],
     pathex=[],
     binaries=[],
     datas=[],

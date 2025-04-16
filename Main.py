@@ -1,7 +1,3 @@
-# Improvements
-# make control buttons a seperate class
-# make functions in that class
-
 import customtkinter as ctk
 import tkinter as tk
 from tkinter import ttk
@@ -10,14 +6,28 @@ import datetime
 import os
 import sys
 
-from History import History as History
 from Binocular import Binocular as Binocular
 from Perceptual import Perceptual as Perceptual
 from StereoCV import StereoCV as StereoCV
 
+# Improvements
+# make control buttons a seperate class
+# make functions in that class
+
 # in each class make colours, properites of each class
 # can probably move the action functions into the actionButtons class and inherit to all classes
+
 # in the binocular class fix the cm toggle
+
+# on sterero CV lin up Ishihara button with NAD
+
+# on perceptual print the result to status bar
+
+# completed
+# on perceptual make the text say w/ +0.50 rx
+# make text print w/ +0.50 rx
+# on perceptual print tvas, mvpt and taas
+# on perceptual add feature that prints in set order
 
 class Main(ctk.CTk):
     # @staticmethod
@@ -47,7 +57,7 @@ class Main(ctk.CTk):
 
         # Initialize the frame placeholder
         self._frame = None
-        self.switch_frame(HistoryTabContent)
+        self.switch_frame(BinocularTabContent)
 
         self.create_tab_bar()
         self.create_datetime_display()
@@ -90,7 +100,6 @@ class Main(ctk.CTk):
     
         # Define tab-to-class mapping
         tab_mapping = {
-            "History": HistoryTabContent,
             "Binocular": BinocularTabContent,
             "Stereo/CV": StereoTabContent,
             "Perceptual": PerceptualTabContent,
@@ -152,11 +161,6 @@ class TabContent(ctk.CTkFrame):
     def create_content(self):
         # To be overridden by child classes
         pass
-
-# History Tab Content
-class HistoryTabContent(TabContent):
-    def __init__(self, master, root_app):
-        History.__init__(self, master, root_app)
 
 # Binocular Tab Content
 class BinocularTabContent(Binocular):

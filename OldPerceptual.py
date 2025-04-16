@@ -10,7 +10,7 @@ class Perceptual(ctk.CTk):
         super().__init__()
         
         # Configure window
-        self.title("HX Program")
+        self.title("Medical Assessment Interface")
         self.geometry("1050x750")
         self.configure(fg_color="#c2e6c2")
         
