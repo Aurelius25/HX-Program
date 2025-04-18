@@ -128,7 +128,6 @@ class Binocular(ctk.CTkFrame):
             self.cm_radio = ctk.CTkRadioButton(self, text="cm (OFF)",
                                        variable=tk.StringVar(value="OFF"),
                                        value="ON",
-                                       fg_color=self._fg_color,  # Match background color
                                        command=self.toggle_cm)
             self.cm_radio.place(x=670, y=120)    
 
@@ -136,9 +135,9 @@ class Binocular(ctk.CTkFrame):
     def toggle_cm(self):
         self.cm_toggle = not self.cm_toggle
         if self.cm_toggle:
-            self.cm_radio.configure(text="cm (ON)")
+            self.cm_radio.configure(text="cm (ON)", fg_color="#4f6be8")
         else:
-            self.cm_radio.configure(text="cm (OFF)")         
+            self.cm_radio.configure(text="cm (OFF)", fg_color="#808080")         
 
     def create_number_grid(self):
         ortho_button = ctk.CTkButton(self, text="Ortho", fg_color="#FFFF60", 
