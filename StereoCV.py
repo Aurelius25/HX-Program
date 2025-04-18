@@ -10,7 +10,7 @@ class StereoCV(ctk.CTkFrame):
 
         # colours
         # rename the colours to actual names
-        self.background_colour = "#57dee6"
+        self.background_colour = "#57dee6" # blue
 
         ctk.CTkFrame.__init__(self, master, fg_color=self.background_colour)
         self.root_app = root_app
@@ -31,10 +31,10 @@ class StereoCV(ctk.CTkFrame):
         self.create_radio_group("Randot Animals", [("50", 1), ("40", 2), ("30", 3), ("None", 4)], 170, 80)
         self.create_radio_group("TNO", [("100%", 1), ("50%", 2), ("None", 3)], 320, 130)
         self.create_radio_group("Range", [("100%", 1), ("70%", 2), ("50%", 3), ("No", 4), ("1m", 5), ("2m", 6), ("3m", 7)], 170, 200)
-        self.create_radio_group("Ishihara", [("NAD", 1), ("Errors", 2), ("Defective", 3)], 170, 250)
-        self.create_radio_group("Put on", [("+0.50", 1), ("+0.75", 2), ("Rx", 3)], 450, 250)
+        self.create_radio_group("Ishihara", [("NAD", 1), ("Errors", 2), ("Defective", 3)], 170, 270)
+        self.create_radio_group("Put on", [("+0.50", 1), ("+0.75", 2), ("Rx", 3)], 450, 270)
 
-        ctk.CTkLabel(self.content_frame, text="Put on", fg_color="#AADDD0").place(x=450, y=225)
+        ctk.CTkLabel(self.content_frame, text="Put on", fg_color=self.background_colour).place(x=450, y=240)
 
     def update_status(self, text):
         if self.root_app:
@@ -69,7 +69,7 @@ class StereoCV(ctk.CTkFrame):
                 height=30,
                 command=lambda t=btn_text: self.update_status(t)
             )
-            btn.pack(pady=5, fill="x")
+            btn.pack(pady=10, fill="x")
 
         # Add large TNO button
         ctk.CTkButton(

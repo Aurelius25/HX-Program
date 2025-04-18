@@ -5,13 +5,11 @@ import pyperclip
 import datetime
 import os
 
-# Added feature to keep track of the order of items
 class Perceptual(ctk.CTkFrame):
     def __init__(self, master, root_app=None):
         ctk.CTkFrame.__init__(self, master, fg_color="#c2e6c2")
         self.root_app = root_app
         
-        # Initialize variables
         self.status_labels = {}
         self.timer_ids = {"DEM A": None, "DEM B": None, "DEM C": None}
         self.test_first_clicked = {"TAAS": False, "TVAS": False, "MVPT": False}
@@ -21,14 +19,14 @@ class Perceptual(ctk.CTkFrame):
         self.mvpt_items = []
         self.tvas_items = []
         
-        # Define Monroe V3 level mapping
+        # Monroe levels
         self.monroe_levels = {
             (0, -1): "Level 0", (1, 3): "(< age 5)", (4, 5): "(age 5)",   
             (6, 6): "(age 6)", (7, 7): "(age 6.5)", (8, 8): "(age 7)",
             (9, 9): "(age 8)", (10, 10): "(age 9)", (11, 12): "(>= age 10)"
         }
         
-        # Test criteria mappings
+        # TAAS and TVAS levels
         self.level_criteria = {
             "TAAS": {
                 (0, 2): "pre prep", (3, 3): "prep", (4, 6): "Early grade 1",
@@ -69,21 +67,18 @@ class Perceptual(ctk.CTkFrame):
                     self.timer_ids[label] = None
             
             # Reset all checkboxes
-            # Reset TAAS checkboxes
             for checkbox, state_var in zip(self.taas_checkboxes, self.taas_state_vars):
                 checkbox.deselect()
                 state_var.set("0")
                 checkbox.configure(fg_color=ctk.ThemeManager.theme["CTkCheckBox"]["fg_color"])
                 checkbox.configure(hover_color=ctk.ThemeManager.theme["CTkCheckBox"]["hover_color"])
             
-            # Reset MVPT checkboxes
             for checkbox, state_var in zip(self.MVPT_checkboxes, self.MVPT_state_vars):
                 checkbox.deselect()
                 state_var.set("0")
                 checkbox.configure(fg_color=ctk.ThemeManager.theme["CTkCheckBox"]["fg_color"])
                 checkbox.configure(hover_color=ctk.ThemeManager.theme["CTkCheckBox"]["hover_color"])
             
-            # Reset TVAS checkboxes and NG checkboxes
             for checkbox, state_var in zip(self.TVAS_checkboxes, self.TVAS_state_vars):
                 checkbox.deselect()
                 state_var.set("0")
@@ -106,7 +101,6 @@ class Perceptual(ctk.CTkFrame):
     def undo_status(self):
         if self.root_app:
             self.root_app.main_undo_status()
-            # Reset tracking after undo
             self.update_tracking_after_undo()
 
     def copy_status(self):
@@ -114,9 +108,6 @@ class Perceptual(ctk.CTkFrame):
             self.root_app.main_copy_status()     
 
     def update_tracking_after_undo(self):
-        # Reset tracking dictionaries after undo
-        # This is a simplified approach - in a full implementation you might 
-        # want to parse the current status text to properly sync the UI state
         self.status_labels = {}
         if self.root_app:
             current_text = self.root_app.status_textbox.get(1.0, "end-1c")
@@ -131,13 +122,9 @@ class Perceptual(ctk.CTkFrame):
             self.mvpt_items = []
             self.tvas_items = []
             
-            # Try to reconstruct ordered item lists from current text
             self.reconstruct_item_lists_from_text(current_text)
 
     def reconstruct_item_lists_from_text(self, text):
-        """Attempt to reconstruct ordered item lists from current text"""
-        # This is a simple implementation - would need more robust parsing in production
-        
         # Extract TAAS items
         taas_wordlist = ["(cow)boy", "steam(boat)", "sun(shine)", "(pic)nic", "(cu)cumber", "(c)oat",
                     "(m)eat", "(t)ake", "(ga)me", "(wro)te", "plea(se)", "(c)lap", "(p)lay", 
@@ -256,7 +243,6 @@ class Perceptual(ctk.CTkFrame):
             ("Undo", "#A52A2A", "white", self.undo_status, 100, 40),
             ("Clear Status", "#FF4500", "white", self.clear_status, 100, 30),
             ("Copy All", "#A0A000", "black", self.copy_status, 110, 50),
-            ("Calculate Scores", "#4169E1", "white", self.display_scores, 110, 40)
         ]
         
         for text, color, text_color, command, width, height in buttons:
@@ -470,13 +456,6 @@ class Perceptual(ctk.CTkFrame):
             
             # Update status mark in the ordered list
             self.update_item_status(label, "\u2717", "TVAS")
-                
-        elif next_state == 2:  # Red cross mark
-                checkbox.select()
-                checkbox.configure(fg_color="red", hover_color="#8B0000")
-                
-                # Update status mark in the ordered list
-                self.update_item_status(label, "\u2717", "TVAS")
     
     def toggle_tvas_ng(self, checkbox, state_var, number):
         label = str(number)
@@ -501,7 +480,6 @@ class Perceptual(ctk.CTkFrame):
             self.add_item_to_display(label, "", "TVAS", number, None, ng_suffix=" NG")
     
     def add_item_to_display(self, item, status, test_type, position, prefix=None, ng_suffix=""):
-        """Add an item to the ordered display list and refresh the display"""
         # Track item in status labels
         self.status_labels[item] = status
         
@@ -555,7 +533,6 @@ class Perceptual(ctk.CTkFrame):
         self.refresh_display(prefix)
     
     def update_item_status(self, item, new_status, test_type):
-        """Update the status of an item in the ordered list"""
         # Update item in status labels
         self.status_labels[item] = new_status
         
@@ -584,7 +561,6 @@ class Perceptual(ctk.CTkFrame):
         self.refresh_display()
     
     def remove_item_from_display(self, item, test_type):
-        """Remove an item from the ordered display list"""
         # Remove from status labels
         if item in self.status_labels:
             del self.status_labels[item]
@@ -609,7 +585,6 @@ class Perceptual(ctk.CTkFrame):
         self.refresh_display()
     
     def refresh_display(self, prefix=None):
-        """Refresh the entire display based on the ordered lists"""
         if not self.root_app:
             return
         
@@ -626,6 +601,12 @@ class Perceptual(ctk.CTkFrame):
             for item, status in self.taas_items:
                 item_text = f"{item} {status}"
                 status_text += item_text + " "
+            
+            # Add TAAS level
+            taas_correct = sum(1 for _, status in self.taas_items if status == "\u2713")
+            taas_level = self.determine_level("TAAS", taas_correct)
+            if taas_level:
+                status_text += f"[{taas_level}] "
         
         # Add MVPT items if there are any
         if self.mvpt_items:
@@ -634,6 +615,10 @@ class Perceptual(ctk.CTkFrame):
             for item, status in self.mvpt_items:
                 item_text = f"{item} {status}"
                 status_text += item_text + " "
+            
+            # Add MVPT level
+            mvpt_correct = sum(1 for _, status in self.mvpt_items if status == "\u2713")
+            status_text += f"[{mvpt_correct}/36] "
         
         # Add TVAS items if there are any
         if self.tvas_items:
@@ -643,6 +628,12 @@ class Perceptual(ctk.CTkFrame):
                 ng_suffix = rest[0] if rest else ""
                 item_text = f"{item} {status}{ng_suffix}"
                 status_text += item_text + " "
+            
+            # Add TVAS level
+            tvas_correct = sum(1 for _, status, *_ in self.tvas_items if status == "\u2713")
+            tvas_level = self.determine_level("TVAS", tvas_correct)
+            if tvas_level:
+                status_text += f"[{tvas_level}] "
         
         # Update textbox with the reconstructed text
         self.root_app.status_textbox.insert("end", status_text)
@@ -707,23 +698,9 @@ class Perceptual(ctk.CTkFrame):
             min_score, max_score = score_range
             if min_score <= correct_count <= max_score:
                 return level
-                
+        
+        # Return empty string if no level matches
         return ""
-    
-    def display_scores(self):
-        correct_counts = self.count_correct_answers()
-        
-        taas_level = self.determine_level("TAAS", correct_counts["TAAS"])
-        tvas_level = self.determine_level("TVAS", correct_counts["TVAS"])
-        
-        score_message = (
-            f"\nScores: "
-            f"TAAS: {correct_counts['TAAS']}/15 ({taas_level}), "
-            f"TVAS: {correct_counts['TVAS']}/14 ({tvas_level}), "
-            f"MVPT Total = {correct_counts['MVPT']}/36"
-        )
-        
-        self.update_status(score_message)
     
     def submit_monroe_score(self):
         try:

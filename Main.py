@@ -11,10 +11,7 @@ from Perceptual import Perceptual as Perceptual
 from StereoCV import StereoCV as StereoCV
 
 
-
 # main improvements
-# on sterero CV lin up Ishihara button with NAD
-# on perceptual print the result to status bar
 # in the binocular class fix the cm toggle 
 
 # code improvementes
@@ -25,6 +22,8 @@ from StereoCV import StereoCV as StereoCV
 # can probably move the action functions into the actionButtons class and inherit to all classes
 
 # completed
+# on sterero CV lin up Ishihara button with NAD
+# on perceptual print the result to status bar
 # on perceptual make the text say w/ +0.50 rx
 # make text print w/ +0.50 rx
 # on perceptual print tvas, mvpt and taas
