@@ -10,18 +10,19 @@ from Binocular import Binocular as Binocular
 from Perceptual import Perceptual as Perceptual
 from StereoCV import StereoCV as StereoCV
 
-# Improvements
+
+
+# main improvements
+# on sterero CV lin up Ishihara button with NAD
+# on perceptual print the result to status bar
+# in the binocular class fix the cm toggle 
+
+# code improvementes
+# make binocuar and stereoCV frame based
 # make control buttons a seperate class
 # make functions in that class
-
 # in each class make colours, properites of each class
 # can probably move the action functions into the actionButtons class and inherit to all classes
-
-# in the binocular class fix the cm toggle
-
-# on sterero CV lin up Ishihara button with NAD
-
-# on perceptual print the result to status bar
 
 # completed
 # on perceptual make the text say w/ +0.50 rx
