@@ -10,12 +10,13 @@ from Binocular import Binocular as Binocular
 from Perceptual import Perceptual as Perceptual
 from StereoCV import StereoCV as StereoCV
 
+# Operating Notes:
+# Perceptual: undo does not work when doing the test, just use the clear status button
 
 # main improvements
 # in the binocular class fix the cm toggle 
 
 # code improvementes
-# make binocuar and stereoCV frame based
 # make control buttons a seperate class
 # make functions in that class
 # in each class make colours, properites of each class
@@ -28,6 +29,7 @@ from StereoCV import StereoCV as StereoCV
 # make text print w/ +0.50 rx
 # on perceptual print tvas, mvpt and taas
 # on perceptual add feature that prints in set order
+
 
 class Main(ctk.CTk):
     # @staticmethod
@@ -181,7 +183,7 @@ if __name__ == "__main__":
     ctk.set_appearance_mode("light")
     ctk.set_default_color_theme("blue")
     
-    # Hope you never find this bit but I made this cause I like you, 
+    # Hope you don't find this bit but I made this cause I like you, 
     # but don't expect anything back
     # that also why I felt guilty about the league skin
     # please don't feel like you owe me anything

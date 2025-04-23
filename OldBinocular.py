@@ -15,28 +15,41 @@ class binocular(ctk.CTk):
         # self.main_frame = ctk.CTkFrame(self, fg_color="#FAC8D4")
         self.main_frame = ctk.CTkFrame(self, fg_color="#FFFFFF")
         self.main_frame.pack(fill="both", expand=True)
+        self.main_frame.pack_propagate(False)
+
+        self.subframe1 = ctk.CTkFrame(self.main_frame, border_color="black", border_width=1, width=850)
+        self.subframe2 = ctk.CTkFrame(self.main_frame, border_color="black", border_width=1, width=200)
+        self.subframe3 = ctk.CTkFrame(self.main_frame, border_color="black", border_width=1, width=200)
+
+        self.subframe1.pack(side="left", fill="both")
+        self.subframe2.pack(side="left", fill="y")
+        self.subframe3.pack(side="left", fill="y")
+
+        self.subframe1.pack_propagate(False)
+        self.subframe2.pack_propagate(False)
+        self.subframe3.pack_propagate(False)
         
         self.status_text = ""
         self.status_history = []
         
-        self.create_status_bar()
+        # self.create_status_bar()
         self.create_top_buttons()
-        self.create_side_options()
-        self.create_number_grid()
-        self.create_movement_options()
-        self.create_plus_minus_buttons()
-        self.create_fatigue_slowing_options()
-        self.create_right_side_buttons()
-        self.create_tested_thru()
-        self.create_direction_buttons()
-        self.create_blue_buttons()
+        # self.create_side_options()
+        # self.create_number_grid()
+        # self.create_movement_options()
+        # self.create_plus_minus_buttons()
+        # self.create_fatigue_slowing_options()
+        # self.create_right_side_buttons()
+        # self.create_tested_thru()
+        # self.create_direction_buttons()
+        # self.create_blue_buttons()
         
-        self.new_line_button = ctk.CTkButton(self.main_frame, text="New Line", fg_color="#E090E0", 
-                                            text_color="black", width=100, height=30,
-                                            command=self.new_line)
-        self.new_line_button.place(x=380, y=500)
+        # self.new_line_button = ctk.CTkButton(self.subframe1, text="New Line", fg_color="#E090E0", 
+        #                                     text_color="black", width=100, height=30,
+        #                                     command=self.new_line)
+        # self.new_line_button.pack()
         
-        self.create_n_ret_dropdown()
+        # self.create_n_ret_dropdown()
         self.cm_toggle = False
 
     def update_status(self, text):
@@ -79,20 +92,27 @@ class binocular(ctk.CTk):
 
     def create_top_buttons(self):
         button_width = 85
-        button_spacing = 100
+        button_height = 30
         
+        # Create frames to hold the buttons
+        top_button_frame = ctk.CTkFrame(self.subframe1)
+        top_button_frame.pack(pady=(80, 0))
+        
+        red_button_frame = ctk.CTkFrame(self.subframe1)
+        red_button_frame.pack(pady=(10, 0))
+        
+        # First row buttons
         labels = ["DCT", "NCT", "NPC", "Pursuits", "N Ret"]
         colors = ["#FFA07A", "#FFA07A", "#FFA07A", "#FFA07A", "#FFA07A"]
         
-        x_pos = 80
         for i, label in enumerate(labels):
             if label != "N Ret":
-                button = ctk.CTkButton(self.main_frame, text=label, fg_color=colors[i], 
-                                      text_color="black", width=button_width, height=30,
-                                      command=lambda l=label: self.update_status(l))
-                button.place(x=x_pos, y=80)
-                x_pos += button_spacing
+                button = ctk.CTkButton(top_button_frame, text=label, fg_color=colors[i], 
+                                    text_color="black", width=button_width, height=button_height,
+                                    command=lambda l=label: self.update_status(l))
+                button.pack(side="left", padx=7.5)
         
+        # Second row buttons (red)
         red_labels = ["Near Phoria", "+2", "−2", "Dist Phoria"]
         red_commands = [
             lambda: self.update_status("Phoria @ 33cm"),
@@ -101,13 +121,11 @@ class binocular(ctk.CTk):
             lambda: self.update_status("Phoria @ 3m")
         ]
         
-        x_pos = 80
         for i, label in enumerate(red_labels):
-            button = ctk.CTkButton(self.main_frame, text=label, fg_color="#FF6060", 
-                                  text_color="white", width=button_width, height=30,
-                                  command=red_commands[i])
-            button.place(x=x_pos, y=120)
-            x_pos += button_spacing
+            button = ctk.CTkButton(red_button_frame, text=label, fg_color="#FF6060", 
+                                text_color="white", width=button_width, height=button_height,
+                                command=red_commands[i])
+            button.pack(side="left", padx=7.5)
 
     def create_n_ret_dropdown(self):
         n_ret_button = ctk.CTkButton(self.main_frame, text="N Ret", fg_color="#FFA07A", 
