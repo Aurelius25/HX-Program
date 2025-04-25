@@ -1,6 +1,8 @@
 import customtkinter as ctk
 import tkinter as tk
 
+from ControlButtons import ControlButtons as ControlButtons
+
 # note: fix action buttons and new line buttons
 
 class Binocular(ctk.CTkFrame):
@@ -9,7 +11,8 @@ class Binocular(ctk.CTkFrame):
         self.root_app = root_app
         self.cm_toggle = False
         self.button_spacing_x, self.button_spacing_y = 100, 40
-        self.starting_pos_x, self.starting_pos_y = 40, 40
+        self.starting_pos_x = 40
+        self.starting_pos_y = 40
         
         self.create_widgets()
         
@@ -21,11 +24,13 @@ class Binocular(ctk.CTkFrame):
         self.create_movement_options()
         self.create_plus_minus_buttons()
         self.create_fatigue_slowing_options()
-        self.create_right_side_buttons()
         self.create_tested_thru()
         self.create_direction_buttons()
         self.create_blue_buttons()
         self.create_new_line_button()
+
+        ControlButtons.create_action_buttons(self, self.starting_pos_x + 790,
+                                             self.starting_pos_y + 120)
     
     def update_status(self, text):
         if self.root_app: self.root_app.main_update_status(text)
@@ -224,18 +229,6 @@ class Binocular(ctk.CTkFrame):
                 y = start_y + (row_idx * y_spacing)
                 ctk.CTkRadioButton(self, text=opt, variable=self.fatigue_slowing_var, value=opt,
                                 command=lambda o=opt: self.update_status(o)).place(x=x, y=y)
-
-    def create_right_side_buttons(self):
-        x_cord = 830
-        buttons = [
-            ("Undo", "#A52A2A", "white", 100, 40, 130, self.undo_status),
-            ("Clear Status", "#FF4500", "white", 100, 30, 180, self.clear_status),
-            ("Copy All", "#A0A000", "black", 100, 50, 240, self.copy_status)
-        ]
-        
-        for text, fg, txt_color, w, h, y, cmd in buttons:
-            ctk.CTkButton(self, text=text, fg_color=fg, text_color=txt_color, 
-                         width=w, height=h, command=cmd).place(x=x_cord, y=y)
 
     def create_blue_buttons(self):
         start_x = 530

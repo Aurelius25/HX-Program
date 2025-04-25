@@ -151,19 +151,6 @@ class Main(ctk.CTk):
         self.status_textbox.insert("end", "\n")
         self.status_textbox.see("end")
 
-# Base class for tab content
-# note: Can get rid of this once all classes inherit
-class TabContent(ctk.CTkFrame):
-    def __init__(self, master, root_app):
-        ctk.CTkFrame.__init__(self, master)
-        self.root_app = root_app
-        self.pack(fill="both", expand=True)
-        self.create_content()
-    
-    def create_content(self):
-        # To be overridden by child classes
-        pass
-
 # Binocular Tab Content
 class BinocularTabContent(Binocular):
     def __init__(self, master, root_app):
@@ -184,7 +171,7 @@ if __name__ == "__main__":
     ctk.set_default_color_theme("blue")
     
     # Hope you don't find this bit but I made this cause I like you, 
-    # but don't expect anything back
+    # but I don't expect anything back
     # that also why I felt guilty about the league skin
     # please don't feel like you owe me anything
 

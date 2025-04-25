@@ -2,6 +2,8 @@ import customtkinter as ctk
 import tkinter as tk
 from tkinter import StringVar, IntVar
 
+from ControlButtons import ControlButtons as ControlButtons
+
 # note: i want to redo this using pack instead of place
 # not sure if i ilke using the fucntion to create the buttons, but will change later
 
@@ -25,7 +27,7 @@ class StereoCV(ctk.CTkFrame):
         self.left_column.pack(side="left", fill="y", padx=5)
 
         self.create_pink_buttons()
-        self.create_action_buttons()
+        # self.create_action_buttons()
         self.create_radio_group("Randot Forms", [("500", 1), ("250", 2), ("None", 3)], 170, 10)
         self.create_radio_group("Randot Circles", [("400", 1), ("200", 2), ("140", 3), ("100", 4), ("70", 5)], 170, 50)
         self.create_radio_group("Randot Animals", [("50", 1), ("40", 2), ("30", 3), ("None", 4)], 170, 80)
@@ -35,6 +37,8 @@ class StereoCV(ctk.CTkFrame):
         self.create_radio_group("Put on", [("+0.50", 1), ("+0.75", 2), ("Rx", 3)], 450, 270)
 
         ctk.CTkLabel(self.content_frame, text="Put on", fg_color=self.background_colour).place(x=450, y=240)
+
+        ControlButtons.create_action_buttons(self, 830, 160)
 
     def update_status(self, text):
         if self.root_app:

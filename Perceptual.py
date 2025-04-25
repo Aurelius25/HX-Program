@@ -5,6 +5,8 @@ import pyperclip
 import datetime
 import os
 
+from ControlButtons import ControlButtons as ControlButtons
+
 class Perceptual(ctk.CTkFrame):
     def __init__(self, master, root_app=None):
         ctk.CTkFrame.__init__(self, master, fg_color="#c2e6c2")
@@ -159,10 +161,9 @@ class Perceptual(ctk.CTkFrame):
         # Create DEM section (left side)
         self.create_dem_section()
         
-        # Create test frames
-        self.create_test_frame("TAAS", self.create_TAAS_content, width=150)
-        self.create_test_frame("TVAS", self.create_TVAS_content, width=130, side="right")
-        self.create_test_frame("MVPT", self.create_MVPT_content, width=240, side="right")
+        self.create_frame("TAAS", self.create_TAAS_content, width=150)
+        self.create_frame("TVAS", self.create_TVAS_content, width=130, side="right")
+        self.create_frame("MVPT", self.create_MVPT_content, width=240, side="right")
         
     def create_dem_section(self):
         left_frame = ctk.CTkFrame(self.main_frame, fg_color="#c2e6c2", corner_radius=0, width=70)
@@ -176,9 +177,7 @@ class Perceptual(ctk.CTkFrame):
             frame = ctk.CTkFrame(left_frame, fg_color="#c2e6c2", corner_radius=0, height=30)
             frame.pack(fill="x", pady=2)
             
-            # Create button with appropriate command
             if label in ["DEM A", "DEM B", "DEM C"]:
-                # Pass the specific label to the toggle_increment_timer function
                 command = lambda l=label: self.toggle_increment_timer(l)
             elif label in ["Skip line", "Rpt line"]:
                 command = lambda l=label: self.increment_entry(l)
@@ -239,16 +238,19 @@ class Perceptual(ctk.CTkFrame):
         self.button_frame = ctk.CTkFrame(self, fg_color="#c2e6c2", corner_radius=0)
         self.button_frame.place(x=450, y=200)
         
-        buttons = [
-            ("Undo", "#A52A2A", "white", self.undo_status, 100, 40),
-            ("Clear Status", "#FF4500", "white", self.clear_status, 100, 30),
-            ("Copy All", "#A0A000", "black", self.copy_status, 110, 50),
-        ]
+        control_buttons = ControlButtons()
         
-        for text, color, text_color, command, width, height in buttons:
+        command_map = {
+            "Undo": self.undo_status,
+            "Clear Status": self.clear_status,
+            "Copy All": self.copy_status
+        }
+        
+        for text, color, text_color, width, height, y_offset in control_buttons.button_configs:
+            command = command_map.get(text)
             self.create_button(self.button_frame, text, color, text_color, command, width, height)
     
-    def create_test_frame(self, title, content_func, width=150, height=180, side="left"):
+    def create_frame(self, title, content_func, width=150, height=180, side="left"):
         frame = ctk.CTkFrame(self.main_frame, width=width, height=height, fg_color="white", corner_radius=5)
         frame.pack(side=side, fill="y", padx=10, pady=10)
         frame.pack_propagate(False)
@@ -277,7 +279,7 @@ class Perceptual(ctk.CTkFrame):
             checkbox_frame = ctk.CTkFrame(parent, fg_color="transparent")
             checkbox_frame.pack(fill="x", padx=5, pady=2)
             
-            # If the word is "sun(shine)" or after, add numbering
+            # If the word is "sunshine" or after, add numbering
             if i >= sunshine_index:
                 number = i - sunshine_index + 1
                 display_text = f"{number}. {word}"
@@ -337,11 +339,11 @@ class Perceptual(ctk.CTkFrame):
         header_frame.pack(fill="x", padx=5, pady=5)
         
         # Add TVAS label
-        tvas_label = ctk.CTkLabel(header_frame, text=title, height=10)
+        tvas_label = ctk.CTkLabel(header_frame, text=title, height=10, width=30)
         tvas_label.pack(side="left", padx=5)
         
         # Add NG label next to TVAS label
-        ng_label = ctk.CTkLabel(header_frame, text="NG", height=10)
+        ng_label = ctk.CTkLabel(header_frame, text="NG", height=10, width=50)
         ng_label.pack(side="right", padx=5)
         
         # Store all checkboxes and variables
@@ -357,7 +359,7 @@ class Perceptual(ctk.CTkFrame):
             
             # First column: Numbered checkboxes
             state_var = ctk.StringVar(value="0")
-            checkbox = ctk.CTkCheckBox(row_frame, text=str(i), width=50, onvalue="1", offvalue="0")
+            checkbox = ctk.CTkCheckBox(row_frame, text=str(i), width=60, onvalue="1", offvalue="0")
             checkbox.pack(side="left", padx=5)
             
             prefix = title if i == 1 else None
@@ -557,7 +559,6 @@ class Perceptual(ctk.CTkFrame):
                     items_list[i] = (item, new_status, ng_suffix)
                 break
         
-        # Refresh the display
         self.refresh_display()
     
     def remove_item_from_display(self, item, test_type):
@@ -581,7 +582,6 @@ class Perceptual(ctk.CTkFrame):
                 items_list.pop(i)
                 break
         
-        # Refresh the display
         self.refresh_display()
     
     def refresh_display(self, prefix=None):
