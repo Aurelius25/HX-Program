@@ -258,7 +258,7 @@ class Binocular(ctk.CTkFrame):
         # Regular tested through
         ctk.CTkLabel(self, text="Tested thru").place(x=regular_start_x, y=regular_start_y)
         
-        regular_options = [("Rx On", 0), ("Plano", 1)]
+        regular_options = [("rx On", 0), ("Plano", 1)]
         var = tk.StringVar(value="Rx On")
         
         for opt, row in regular_options:

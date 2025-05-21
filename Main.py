@@ -17,13 +17,10 @@ from StereoCV import StereoCV as StereoCV
 # in the binocular class fix the cm toggle 
 
 # code improvementes
-# make control buttons a seperate class
-# make functions in that class
 # in each class make colours, properites of each class
-# can probably move the action functions into the actionButtons class and inherit to all classes
 
 # completed
-# on sterero CV lin up Ishihara button with NAD
+# on sterero CV lined up Ishihara button with NAD
 # on perceptual print the result to status bar
 # on perceptual make the text say w/ +0.50 rx
 # make text print w/ +0.50 rx
@@ -170,8 +167,9 @@ if __name__ == "__main__":
     ctk.set_appearance_mode("light")
     ctk.set_default_color_theme("blue")
     
-    # Hope you don't find this bit but I made this cause I like you, 
-    # but I don't expect anything back
+    # Hope you don't find this bit cause I think I'll get smacked for this
+    # but I made this cause I like you, 
+    # I don't expect anything back
     # that also why I felt guilty about the league skin
     # please don't feel like you owe me anything
 

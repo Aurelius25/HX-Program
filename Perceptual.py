@@ -203,9 +203,9 @@ class Perceptual(ctk.CTkFrame):
         radio_label.pack(side="left", padx=5)
         
         radio_var = tk.StringVar(value="+0.5")
-        for rx in ["+0.50", "+0.75", "+1.00"]:
+        for rx in ["+0.50 rx", "+0.75 rx", "+1.00 rx"]:
             rx_radio = ctk.CTkRadioButton(radio_frame, text=rx, variable=radio_var, value=rx, width=10,
-                                       command=lambda v=rx: self.update_status(f"w/ {v} rx"))
+                                       command=lambda v=rx: self.update_status(f"w/ {v}"))
             rx_radio.pack(side="left", padx=5)
         
         # Control buttons
@@ -236,7 +236,7 @@ class Perceptual(ctk.CTkFrame):
         
     def create_control_buttons(self):
         self.button_frame = ctk.CTkFrame(self, fg_color="#c2e6c2", corner_radius=0)
-        self.button_frame.place(x=450, y=200)
+        self.button_frame.place(x=490, y=200)
         
         control_buttons = ControlButtons()
         

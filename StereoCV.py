@@ -4,19 +4,21 @@ from tkinter import StringVar, IntVar
 
 from ControlButtons import ControlButtons as ControlButtons
 
-# note: i want to redo this using pack instead of place
-# not sure if i ilke using the fucntion to create the buttons, but will change later
-
 class StereoCV(ctk.CTkFrame):
     def __init__(self, master, root_app=None):
-
         # colours
-        # rename the colours to actual names
-        self.background_colour = "#57dee6" # blue
+        self.background_colour = "#99fdff" # blue
+        self.button_colour = "#FF69B4" # pink
 
         ctk.CTkFrame.__init__(self, master, fg_color=self.background_colour)
         self.root_app = root_app
 
+        self.y_pos_randot_forms = 10  
+        self.y_pos_randot_circles = 60  
+        self.y_pos_randot_animals = 100  
+        self.y_pos_tno = 160  
+        self.y_pos_range = 220 
+        self.y_pos_ishihara = 280
 
         # Create content
         self.content_frame = ctk.CTkFrame(self, fg_color=self.background_colour)
@@ -27,16 +29,16 @@ class StereoCV(ctk.CTkFrame):
         self.left_column.pack(side="left", fill="y", padx=5)
 
         self.create_pink_buttons()
-        # self.create_action_buttons()
-        self.create_radio_group("Randot Forms", [("500", 1), ("250", 2), ("None", 3)], 170, 10)
-        self.create_radio_group("Randot Circles", [("400", 1), ("200", 2), ("140", 3), ("100", 4), ("70", 5)], 170, 50)
-        self.create_radio_group("Randot Animals", [("50", 1), ("40", 2), ("30", 3), ("None", 4)], 170, 80)
-        self.create_radio_group("TNO", [("100%", 1), ("50%", 2), ("None", 3)], 320, 130)
-        self.create_radio_group("Range", [("100%", 1), ("70%", 2), ("50%", 3), ("No", 4), ("1m", 5), ("2m", 6), ("3m", 7)], 170, 200)
-        self.create_radio_group("Ishihara", [("NAD", 1), ("Errors", 2), ("Defective", 3)], 170, 270)
-        self.create_radio_group("Put on", [("+0.50", 1), ("+0.75", 2), ("Rx", 3)], 450, 270)
+        self.create_radio_group("Randot Forms", [("500", 1), ("250", 2), ("None", 3)], 170, self.y_pos_randot_forms + 3)
+        self.create_radio_group("Randot Circles", [("400", 1), ("200", 2), ("140", 3), ("100", 4), ("70", 5)], 170, self.y_pos_randot_circles)
+        self.create_radio_group("Randot Animals", [("50", 1), ("40", 2), ("30", 3), ("None", 4)], 170, self.y_pos_randot_animals)
+        self.create_radio_group("TNO", [("100%", 1), ("50%", 2), ("None", 3)], 320, self.y_pos_tno)
+        self.create_radio_group("Range", [("100%", 1), ("70%", 2), ("50%", 3), ("No", 4), ("1m", 5), ("2m", 6), ("3m", 7)], 170, self.y_pos_range)
+        self.create_radio_group("Ishihara", [("NAD", 1), ("Errors", 2), ("Defective", 3)], 170, self.y_pos_ishihara)
+        self.create_radio_group("Put on", [("+0.50", 1), ("+0.75", 2), ("rx", 3)], 450, self.y_pos_ishihara)
 
-        ctk.CTkLabel(self.content_frame, text="Put on", fg_color=self.background_colour).place(x=450, y=240)
+        # Put on label - position relative to ishihara variable
+        ctk.CTkLabel(self.content_frame, text="Put on", fg_color=self.background_colour).place(x=450, y=self.y_pos_ishihara - 30)
 
         ControlButtons.create_action_buttons(self, 830, 160)
 
@@ -61,55 +63,43 @@ class StereoCV(ctk.CTkFrame):
             self.root_app.main_copy_status()    
 
     def create_pink_buttons(self):
-        # Create pink buttons
-        pink_buttons = ["Randot Forms", "Randot Circles", "Randot Animals", "TNO", "Large Range", "Ishihara"]
-        for btn_text in pink_buttons:
+        # Create pink buttons dictionary with positions - using the instance variables
+        pink_buttons = [
+            {"text": "Randot Forms", "y_pos": self.y_pos_randot_forms},
+            {"text": "Randot Circles", "y_pos": self.y_pos_randot_circles},
+            {"text": "Randot Animals", "y_pos": self.y_pos_randot_animals},
+            {"text": "TNO", "y_pos": self.y_pos_tno},
+            {"text": "Large Range", "y_pos": self.y_pos_range},
+            {"text": "Ishihara", "y_pos": self.y_pos_ishihara}
+        ]
+        
+        # Create buttons based on the dictionary using place() instead of pack()
+        button_width = 120  # Width for all buttons
+        button_height = 30  # Height for all buttons
+        button_x = 10       # X position for all buttons in left column
+        
+        for btn_data in pink_buttons:
             btn = ctk.CTkButton(
                 self.left_column,
-                text=btn_text,
-                fg_color="#FF69B4",
+                text=btn_data["text"],
+                fg_color=self.button_colour,
                 text_color="black",
-                corner_radius=2,
-                height=30,
-                command=lambda t=btn_text: self.update_status(t)
+                width=button_width,
+                height=button_height,
+                command=lambda t=btn_data["text"]: self.update_status(t)
             )
-            btn.pack(pady=10, fill="x")
+            btn.place(x=button_x, y=btn_data["y_pos"])
 
-        # Add large TNO button
+        # Add large TNO button - now using the TNO position variable
         ctk.CTkButton(
             self.content_frame,
             text="Large TNO",
-            fg_color="#FF69B4",
+            fg_color=self.button_colour,
             text_color="black",
-            corner_radius=2,
             width=120,
             height=30,
             command=lambda: self.update_status("Large TNO")
-        ).place(x=180, y=125)
-    
-    def create_action_buttons(self):
-        x_cord = 830
-
-        undo_button = ctk.CTkButton(self, text="Undo", fg_color="#A52A2A", 
-                                  text_color="white", width=100, height=40,
-                                  command=self.undo_status)
-        undo_button.place(x=x_cord, y=130)
-        
-        clear_status_button = ctk.CTkButton(self, text="Clear Status", fg_color="#FF4500", 
-                                          text_color="white", width=100, height=30,
-                                          command=self.clear_status)
-        clear_status_button.place(x=x_cord, y=180)
-        
-        copy_button = ctk.CTkButton(self, text="Copy All", fg_color="#A0A000", 
-                                   text_color="black", width=110, height=50,
-                                   command=self.copy_status)
-        copy_button.place(x=x_cord, y=260)
-
-        self.new_line_button = ctk.CTkButton(self, text="New Line", fg_color="#E090E0", 
-                                            text_color="black", width=100, height=30,
-                                            command=self.new_line)
-        self.new_line_button.place(x=380, y=350)
-
+        ).place(x=180, y=self.y_pos_tno - 5)  # Small offset to align nicely
 
     def create_radio_group(self, name, options, x, y):
         var = IntVar()
@@ -123,4 +113,4 @@ class StereoCV(ctk.CTkFrame):
                 value=value,
                 command=lambda t=text: self.update_status(t)
             )
-            radio.place(x=x + i*70, y=y)            
+            radio.place(x=x + i*70, y=y)
