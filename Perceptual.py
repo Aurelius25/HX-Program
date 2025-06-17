@@ -21,6 +21,9 @@ class Perceptual(ctk.CTkFrame):
         self.mvpt_items = []
         self.tvas_items = []
         
+        # Track text positions for each test section
+        self.test_positions = {"TAAS": None, "MVPT": None, "TVAS": None}
+        
         # Monroe levels
         self.monroe_levels = {
             (0, -1): "Level 0", (1, 3): "(< age 5)", (4, 5): "(age 5)",   
@@ -47,11 +50,22 @@ class Perceptual(ctk.CTkFrame):
         
     def update_status(self, text):
         if self.root_app:
-            self.root_app.main_update_status(text)  
+            self.root_app.main_update_status(text)
+            # Auto-scroll to bottom after updating
+            self.root_app.status_textbox.see("end")
 
     def new_line(self):
         if self.root_app:
-            self.root_app.main_new_line()  
+            # Get current text
+            current_text = self.root_app.status_textbox.get(1.0, "end-1c")
+            
+            # Only add new line if there's existing content and it doesn't already end with newline
+            if current_text.strip() and not current_text.endswith('\n'):
+                self.root_app.status_textbox.insert("end", "\n")
+                self.root_app.status_text = self.root_app.status_textbox.get(1.0, "end-1c")
+                
+                # Auto-scroll to bottom
+                self.root_app.status_textbox.see("end")
 
     def clear_status(self):
         if self.root_app:
@@ -99,6 +113,9 @@ class Perceptual(ctk.CTkFrame):
             self.taas_items = []
             self.mvpt_items = []
             self.tvas_items = []
+            
+            # Reset test positions
+            self.test_positions = {"TAAS": None, "MVPT": None, "TVAS": None}
 
     def undo_status(self):
         if self.root_app:
@@ -123,6 +140,9 @@ class Perceptual(ctk.CTkFrame):
             self.taas_items = []
             self.mvpt_items = []
             self.tvas_items = []
+            
+            # Reset test positions
+            self.test_positions = {"TAAS": None, "MVPT": None, "TVAS": None}
             
             self.reconstruct_item_lists_from_text(current_text)
 
@@ -382,10 +402,91 @@ class Perceptual(ctk.CTkFrame):
             self.TVAS_ng_checkboxes.append(ng_checkbox)
             self.TVAS_ng_state_vars.append(ng_var)
     
+    def find_test_section_in_text(self, test_name):
+        """Find the start and end positions of a test section in the text"""
+        if not self.root_app:
+            return None, None
+        
+        text = self.root_app.status_textbox.get(1.0, "end-1c")
+        
+        # Find the start of the test section
+        start_pos = text.find(test_name)
+        if start_pos == -1:
+            return None, None
+        
+        # Find the end by looking for the next test section or end of text
+        test_names = ["TAAS", "MVPT", "TVAS", "DEM", "Monroe"]
+        end_pos = len(text)
+        
+        for other_test in test_names:
+            if other_test != test_name:
+                other_pos = text.find(other_test, start_pos + len(test_name))
+                if other_pos != -1 and other_pos < end_pos:
+                    end_pos = other_pos
+        
+        return start_pos, end_pos
+    
+    def update_test_section(self, test_name, new_content):
+        """Update a specific test section without affecting other content"""
+        if not self.root_app:
+            return
+        
+        start_pos, end_pos = self.find_test_section_in_text(test_name)
+        
+        if start_pos is not None:
+            # Replace the existing section
+            self.root_app.status_textbox.delete(f"1.{start_pos}", f"1.{end_pos}")
+            self.root_app.status_textbox.insert(f"1.{start_pos}", new_content)
+        else:
+            # Add new section at the end
+            current_text = self.root_app.status_textbox.get(1.0, "end-1c")
+            if current_text and not current_text.endswith(" "):
+                new_content = " " + new_content
+            self.root_app.status_textbox.insert("end", new_content)
+    
+    def build_test_section_content(self, test_name):
+        """Build the content string for a specific test section"""
+        content = f"{test_name} "
+        
+        if test_name == "TAAS":
+            for item, status in self.taas_items:
+                content += f"{item} {status} "
+            
+            # Add TAAS level
+            taas_correct = sum(1 for _, status in self.taas_items if status == "\u2713")
+            taas_level = self.determine_level("TAAS", taas_correct)
+            if taas_level:
+                content += f"[{taas_level}] "
+                
+        elif test_name == "MVPT":
+            for item, status in self.mvpt_items:
+                content += f"{item} {status} "
+            
+            # Add MVPT level
+            mvpt_correct = sum(1 for _, status in self.mvpt_items if status == "\u2713")
+            content += f"[{mvpt_correct}/36] "
+            
+        elif test_name == "TVAS":
+            for item, status, *rest in self.tvas_items:
+                ng_suffix = rest[0] if rest else ""
+                content += f"{item} {status}{ng_suffix} "
+            
+            # Add TVAS level
+            tvas_correct = sum(1 for _, status, *_ in self.tvas_items if status == "\u2713")
+            tvas_level = self.determine_level("TVAS", tvas_correct)
+            if tvas_level:
+                content += f"[{tvas_level}] "
+        
+        return content
+    
     def toggle_taas_state(self, checkbox, state_var, word, prefix=None, index=0):
         current_state = int(state_var.get())
         next_state = (current_state + 1) % 3
         state_var.set(str(next_state))
+        
+        # Add prefix if this is the first item clicked for this test
+        if prefix and not self.test_first_clicked["TAAS"]:
+            self.test_first_clicked["TAAS"] = True
         
         if next_state == 0:  # Off state
             checkbox.deselect()
@@ -413,6 +514,10 @@ class Perceptual(ctk.CTkFrame):
         next_state = (current_state + 1) % 3
         state_var.set(str(next_state))
         
+        # Add prefix if this is the first item clicked for this test
+        if prefix and not self.test_first_clicked["MVPT"]:
+            self.test_first_clicked["MVPT"] = True
+        
         if next_state == 0:  # Off state
             checkbox.deselect()
             checkbox.configure(fg_color=ctk.ThemeManager.theme["CTkCheckBox"]["fg_color"])
@@ -438,6 +543,10 @@ class Perceptual(ctk.CTkFrame):
         current_state = int(state_var.get())
         next_state = (current_state + 1) % 3
         state_var.set(str(next_state))
+        
+        # Add prefix if this is the first item clicked for this test
+        if prefix and not self.test_first_clicked["TVAS"]:
+            self.test_first_clicked["TVAS"] = True
         
         if next_state == 0:  # Off state
             checkbox.deselect()
@@ -472,8 +581,8 @@ class Perceptual(ctk.CTkFrame):
                 # Update item in list
                 self.tvas_items[i] = (label, status_mark, ng_suffix)
                 
-                # Refresh the display
-                self.refresh_display()
+                # Update the display
+                self.update_test_line("TVAS")
                 return
         
         # Item not found in list but NG was checked - add it as a standalone NG item
@@ -494,6 +603,9 @@ class Perceptual(ctk.CTkFrame):
             items_list = self.tvas_items
         else:
             return
+        
+        # Check if this is the first item for this test type
+        is_first_item = len(items_list) == 0
         
         # Find insertion position
         if test_type == "TAAS":
@@ -531,8 +643,95 @@ class Perceptual(ctk.CTkFrame):
         # Insert the item at the correct position
         items_list.insert(insert_position, new_item)
         
-        # Refresh the display with prefix if provided
-        self.refresh_display(prefix)
+        # If this is the first item for this test type, create a new line
+        if is_first_item:
+            # Get current text and check if we need a newline
+            current_text = self.root_app.status_textbox.get(1.0, "end-1c") if self.root_app else ""
+            
+            # Only add newline if there's content and it doesn't end with newline or whitespace
+            if current_text.strip() and not current_text.rstrip().endswith('\n'):
+                if self.root_app:
+                    self.root_app.status_textbox.insert("end", "\n")
+        
+        # Update only this test's line
+        self.update_test_line(test_type)
+
+    def update_test_line(self, test_type):
+        """Update only the specific test line in the textbox"""
+        if not self.root_app:
+            return
+        
+        # Get current text
+        current_text = self.root_app.status_textbox.get(1.0, "end-1c")
+        lines = current_text.split('\n')
+        
+        # Find the line that contains this test type
+        test_line_index = -1
+        for i, line in enumerate(lines):
+            if line.strip().startswith(test_type + " "):
+                test_line_index = i
+                break
+        
+        # Build the new content for this test
+        new_test_content = ""
+        
+        if test_type == "TAAS" and self.taas_items:
+            new_test_content = "TAAS "
+            for item, status in self.taas_items:
+                new_test_content += f"{item} {status} "
+            
+            # Add TAAS level - count only correct answers (✓)
+            taas_correct = sum(1 for _, status in self.taas_items if status == "\u2713")
+            taas_level = self.determine_level("TAAS", taas_correct)
+            if taas_level:
+                new_test_content += f"[{taas_level}]"
+        
+        elif test_type == "MVPT" and self.mvpt_items:
+            new_test_content = "MVPT "
+            for item, status in self.mvpt_items:
+                new_test_content += f"{item} {status} "
+            
+            # Add MVPT level - count only correct answers (✓)
+            mvpt_correct = sum(1 for _, status in self.mvpt_items if status == "\u2713")
+            new_test_content += f"[{mvpt_correct}/36]"
+        
+        elif test_type == "TVAS" and self.tvas_items:
+            new_test_content = "TVAS "
+            for item, status, *rest in self.tvas_items:
+                ng_suffix = rest[0] if rest else ""
+                new_test_content += f"{item} {status}{ng_suffix} "
+            
+            # Add TVAS level - count only correct answers (✓)
+            tvas_correct = sum(1 for _, status, *_ in self.tvas_items if status == "\u2713")
+            tvas_level = self.determine_level("TVAS", tvas_correct)
+            if tvas_level:
+                new_test_content += f"[{tvas_level}]"
+        
+        # Only proceed if we have content to update
+        if not new_test_content:
+            return
+        
+        new_test_content = new_test_content.strip()
+        
+        if test_line_index != -1:
+            # Update existing line
+            lines[test_line_index] = new_test_content
+        else:
+            # Add new line for this test - but be careful about empty lines
+            # Remove any trailing empty lines first
+            while lines and lines[-1].strip() == "":
+                lines.pop()
+            lines.append(new_test_content)
+        
+        # Update the textbox
+        self.root_app.status_textbox.delete(1.0, "end")
+        self.root_app.status_textbox.insert("end", '\n'.join(lines))
+        
+        # Auto-scroll to bottom
+        self.root_app.status_textbox.see("end")
+        
+        # Update the stored status text
+        self.root_app.status_text = self.root_app.status_textbox.get(1.0, "end-1c")
     
     def update_item_status(self, item, new_status, test_type):
         # Update item in status labels
@@ -559,7 +758,8 @@ class Perceptual(ctk.CTkFrame):
                     items_list[i] = (item, new_status, ng_suffix)
                 break
         
-        self.refresh_display()
+        # Update the display for this specific test
+        self.update_test_line(test_type)
     
     def remove_item_from_display(self, item, test_type):
         # Remove from status labels
@@ -582,62 +782,41 @@ class Perceptual(ctk.CTkFrame):
                 items_list.pop(i)
                 break
         
-        self.refresh_display()
-    
-    def refresh_display(self, prefix=None):
+        # If no items left in this test, remove the entire line
+        if len(items_list) == 0:
+            self.remove_test_line(test_type)
+        else:
+            # Update the display for this specific test
+            self.update_test_line(test_type)
+
+    def remove_test_line(self, test_type):
+        """Remove an entire test line from the textbox"""
         if not self.root_app:
             return
         
-        # Clear the current status text
+        # Get current text
+        current_text = self.root_app.status_textbox.get(1.0, "end-1c")
+        lines = current_text.split('\n')
+        
+        # Find and remove the line that contains this test type
+        filtered_lines = []
+        for line in lines:
+            if not line.strip().startswith(test_type + " "):
+                filtered_lines.append(line)
+        
+        # Update the textbox
         self.root_app.status_textbox.delete(1.0, "end")
+        self.root_app.status_textbox.insert("end", '\n'.join(filtered_lines))
         
-        # Rebuild text section by section
-        status_text = ""
+        # Auto-scroll to bottom
+        self.root_app.status_textbox.see("end")
         
-        # Add TAAS items if there are any
-        if self.taas_items:
-            # Always add the TAAS prefix if there are items
-            status_text += "TAAS "
-            for item, status in self.taas_items:
-                item_text = f"{item} {status}"
-                status_text += item_text + " "
-            
-            # Add TAAS level
-            taas_correct = sum(1 for _, status in self.taas_items if status == "\u2713")
-            taas_level = self.determine_level("TAAS", taas_correct)
-            if taas_level:
-                status_text += f"[{taas_level}] "
-        
-        # Add MVPT items if there are any
-        if self.mvpt_items:
-            # Always add the MVPT prefix if there are items
-            status_text += "MVPT "
-            for item, status in self.mvpt_items:
-                item_text = f"{item} {status}"
-                status_text += item_text + " "
-            
-            # Add MVPT level
-            mvpt_correct = sum(1 for _, status in self.mvpt_items if status == "\u2713")
-            status_text += f"[{mvpt_correct}/36] "
-        
-        # Add TVAS items if there are any
-        if self.tvas_items:
-            # Always add the TVAS prefix if there are items
-            status_text += "TVAS "
-            for i, (item, status, *rest) in enumerate(self.tvas_items):
-                ng_suffix = rest[0] if rest else ""
-                item_text = f"{item} {status}{ng_suffix}"
-                status_text += item_text + " "
-            
-            # Add TVAS level
-            tvas_correct = sum(1 for _, status, *_ in self.tvas_items if status == "\u2713")
-            tvas_level = self.determine_level("TVAS", tvas_correct)
-            if tvas_level:
-                status_text += f"[{tvas_level}] "
-        
-        # Update textbox with the reconstructed text
-        self.root_app.status_textbox.insert("end", status_text)
-        self.root_app.status_text = status_text
+        # Update the stored status text
+        self.root_app.status_text = self.root_app.status_textbox.get(1.0, "end-1c")            
+    
+    def refresh_display(self, prefix=None):
+    # This function is no longer used - individual test updates handle their own lines
+        pass
     
     def toggle_increment_timer(self, label):
         # Check if timer for this specific DEM is active
@@ -669,23 +848,23 @@ class Perceptual(ctk.CTkFrame):
             pyperclip.copy(self.root_app.status_textbox.get(1.0, "end-1c"))
     
     def count_correct_answers(self):
+        """Count only the correct answers (✓) for each test type"""
         if not self.root_app:
             return {"TAAS": 0, "TVAS": 0, "MVPT": 0}
             
-        status_text = self.root_app.status_textbox.get(1.0, "end-1c")
         correct_counts = {"TAAS": 0, "TVAS": 0, "MVPT": 0}
         
-        # Count correct answers from our ordered lists
+        # Count correct answers from our ordered lists - only count ✓ symbols
         for item, status in self.taas_items:
-            if status == "\u2713":  # Check mark
+            if status == "\u2713":  # Check mark only
                 correct_counts["TAAS"] += 1
         
         for item, status in self.mvpt_items:
-            if status == "\u2713":  # Check mark
+            if status == "\u2713":  # Check mark only
                 correct_counts["MVPT"] += 1
         
         for item, status, *rest in self.tvas_items:
-            if status == "\u2713":  # Check mark
+            if status == "\u2713":  # Check mark only
                 correct_counts["TVAS"] += 1
         
         return correct_counts
@@ -706,6 +885,12 @@ class Perceptual(ctk.CTkFrame):
         try:
             score = int(self.monroe_score_entry.get())
             level = self.determine_monroe_level(score)
+            
+            # Check if we need a new line before adding Monroe results
+            current_text = self.root_app.status_textbox.get(1.0, "end-1c")
+            if current_text.strip() and not current_text.endswith('\n'):
+                self.new_line()
+                
             self.update_status(f"Monroe V3 score = {score} {level}")
         except ValueError:
             self.update_status("Error: Monroe V3 score must be a number")
@@ -739,6 +924,57 @@ class Perceptual(ctk.CTkFrame):
                 f"Rpt lines: {dem_values['Rpt line']} sec, "
                 f"Total = {total} sec"
             )
+            
+            # Check if we need a new line before adding DEM results
+            current_text = self.root_app.status_textbox.get(1.0, "end-1c")
+            if current_text.strip() and not current_text.endswith('\n'):
+                self.new_line()
+            
             self.update_status(results_message)
         except ValueError:
             self.update_status("Error: All DEM values must be numbers")
+
+    def preserve_cursor_position(self, func):
+        """Decorator-like function to preserve cursor position during textbox updates"""
+        if not self.root_app:
+            return func()
+        
+        # Store current cursor position and scroll position
+        cursor_pos = self.root_app.status_textbox.index(tk.INSERT)
+        scroll_pos = self.root_app.status_textbox.yview()
+        
+        # Execute the function
+        result = func()
+        
+        # Restore cursor and scroll position
+        try:
+            self.root_app.status_textbox.mark_set(tk.INSERT, cursor_pos)
+            self.root_app.status_textbox.yview_moveto(scroll_pos[0])
+        except tk.TclError:
+            # If positions are invalid, place at end
+            self.root_app.status_textbox.mark_set(tk.INSERT, "end")
+        
+        return result
+
+    def update_textbox_with_cursor_preservation(self, new_content):
+        """Update textbox content while preserving cursor position"""
+        if not self.root_app:
+            return
+        
+        # Store current cursor position and scroll position
+        cursor_pos = self.root_app.status_textbox.index(tk.INSERT)
+        scroll_pos = self.root_app.status_textbox.yview()
+        
+        # Update content
+        self.root_app.status_textbox.delete(1.0, "end")
+        self.root_app.status_textbox.insert("end", new_content)
+        
+        # Restore cursor and scroll position
+        try:
+            self.root_app.status_textbox.mark_set(tk.INSERT, cursor_pos)
+            self.root_app.status_textbox.yview_moveto(scroll_pos[0])
+        except tk.TclError:
+            # If positions are invalid, place at end
+            self.root_app.status_textbox.mark_set(tk.INSERT, "end")
+        
+        self.root_app.status_text = self.root_app.status_textbox.get(1.0, "end-1c")        
